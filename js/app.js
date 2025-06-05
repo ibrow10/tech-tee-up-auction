@@ -157,7 +157,7 @@ async function connectToSupabase() {
         if (!window.supabase) {
             console.error('Supabase client library not loaded!');
             updateConnectionStatus(false);
-            showError('Supabase client library failed to load. Please check your internet connection.');
+            await showError('Supabase client library failed to load. Please check your internet connection.');
             return false;
         }
         
@@ -165,14 +165,9 @@ async function connectToSupabase() {
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log('Supabase client created successfully');
         
-        // Test the connection with a simple query
-        console.log('Testing connection with a simple query...');
-        let data, error;
-        
-        // First try direct connection
-        const result = await supabase.from('auction_items').select('count', { count: 'exact', head: true });
-        data = result.data;
-        error = result.error;
+        // Test the connection with a query that matches the actual table structure
+        console.log('Testing connection with a query that matches the actual schema...');
+        const { data, error } = await supabase.from('auction_items').select('id, title, description, starting_price, current_bid, high_bidder').limit(1);
         
         // If direct connection fails with CORS error and we're on GitHub Pages, try a proxy approach
         if (error && window.location.hostname.includes('github.io') && 
@@ -260,19 +255,21 @@ async function loadAuctionItems() {
             return;
         }
         
+        console.log('Loading auction items from database...');
         const { data, error } = await supabase
             .from('auction_items')
-            .select('*')
+            .select('id, title, description, starting_price, current_bid, high_bidder, image_url, category, created_at, updated_at')
             .order('current_bid', { ascending: false });
         
         if (error) {
             console.error('Error loading auction items:', error);
-            showError('Failed to load auction items. Please try again later.');
+            await showError('Failed to load auction items. Please try again later.');
             // Load demo data on error
             loadDemoData();
             return;
         }
         
+        console.log('Auction items loaded:', data);
         auctionItems = data;
         
         // If no items were found, load demo data
@@ -281,6 +278,13 @@ async function loadAuctionItems() {
             loadDemoData();
             return;
         }
+        
+        // Convert string prices to numbers if needed
+        auctionItems = auctionItems.map(item => ({
+            ...item,
+            current_bid: typeof item.current_bid === 'string' ? parseFloat(item.current_bid) : item.current_bid,
+            starting_price: typeof item.starting_price === 'string' ? parseFloat(item.starting_price) : item.starting_price
+        }));
         
         // Extract categories
         categories = new Set();
@@ -294,7 +298,13 @@ async function loadAuctionItems() {
         populateCategoryFilter();
     } catch (error) {
         console.error('Error in loadAuctionItems:', error);
-        showError('An unexpected error occurred while loading auction items.');
+        await showError('An unexpected error occurred while loading auction items.');
+        // Log the error to our error.md file
+        await logErrorToFile('Load Items Error', error.message || 'Unknown error', {
+            url: window.location.href,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent
+        });
         // Load demo data on any error
         loadDemoData();
     }
@@ -338,7 +348,8 @@ function createAuctionItemElement(item, index) {
     // Title with proper styling
     const title = document.createElement('p');
     title.className = 'item-title';
-    title.textContent = item.title;
+    // Use title from database (instead of name which was in the old schema)
+    title.textContent = item.title || item.name || 'Unnamed Item';
     itemInfo.appendChild(title);
     
     // Add category as a subtitle
@@ -463,7 +474,7 @@ function filterItems() {
     // Filter by search term
     if (searchValue) {
         filteredItems = filteredItems.filter(item => 
-            item.title.toLowerCase().includes(searchValue) || 
+            (item.title && item.title.toLowerCase().includes(searchValue)) || 
             (item.description && item.description.toLowerCase().includes(searchValue))
         );
     }
@@ -485,6 +496,7 @@ function showItemDetails(itemId) {
     
     const modalContent = document.getElementById('modal-content');
     const imageUrl = item.image_url || 'images/placeholder.jpg';
+    // Use current_bid for minimum bid calculation
     const minimumBid = (parseFloat(item.current_bid) + 5).toFixed(2);
     
     modalContent.innerHTML = `
@@ -586,48 +598,79 @@ async function handleBidSubmission(e) {
     }
 }
 
-// Place bid
+// Place a bid on an item
 async function placeBid(itemId, bidAmount, bidderName) {
     try {
-        // Get the latest item data to ensure we have the current bid
-        const { data: latestItem, error: fetchError } = await supabase
-            .from('auction_items')
-            .select('*')
-            .eq('id', itemId)
-            .single();
-        
-        if (fetchError) throw fetchError;
-        
-        // Validate bid amount
-        if (bidAmount <= latestItem.current_bid) {
-            return {
-                success: false,
-                message: `Your bid must be higher than the current bid of €${latestItem.current_bid.toFixed(2)}`
-            };
+        // Find the item
+        const item = auctionItems.find(item => item.id === itemId);
+        if (!item) {
+            await showError('Item not found');
+            return false;
         }
         
-        // Update the item with the new bid
+        // Validate bid amount
+        if (bidAmount <= item.current_bid) {
+            await showError(`Your bid must be higher than the current bid of $${item.current_bid.toFixed(2)}`);
+            return false;
+        }
+        
+        // If we're in demo mode, just update the local data
+        if (window.usingProxyMode) {
+            console.log('Demo mode: updating local data only');
+            item.current_bid = bidAmount;
+            item.high_bidder = bidderName;
+            renderAuctionItems(auctionItems);
+            return true;
+        }
+        
+        console.log(`Placing bid of $${bidAmount} by ${bidderName} on item ${itemId}`);
+        
+        // Update the item in Supabase
         const { data, error } = await supabase
             .from('auction_items')
-            .update({
+            .update({ 
                 current_bid: bidAmount,
                 high_bidder: bidderName,
-                updated_at: new Date()
+                updated_at: new Date().toISOString()
             })
             .eq('id', itemId)
             .select();
         
-        if (error) throw error;
+        if (error) {
+            console.error('Error placing bid:', error);
+            await logErrorToFile('Bid Placement Error', error.message || 'Unknown error', {
+                itemId,
+                bidAmount,
+                bidderName,
+                url: window.location.href,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent
+            });
+            await showError(`Failed to place bid: ${error.message}`);
+            return false;
+        }
         
-        return { success: true, data };
+        // Update local data
+        const updatedItem = data[0];
+        const itemIndex = auctionItems.findIndex(item => item.id === itemId);
+        if (itemIndex !== -1) {
+            auctionItems[itemIndex] = updatedItem;
+        }
+        
+        renderAuctionItems(auctionItems);
+        return true;
     } catch (error) {
         console.error('Error in placeBid:', error);
-        await logErrorToFile('Place Bid Error', error.message, {
+        await logErrorToFile('Bid Placement Exception', error.message || 'Unknown error', {
+            itemId,
+            bidAmount,
+            bidderName,
             url: window.location.href,
             timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent
         });
-        return { success: false, message: error.message };
+        await showError('An unexpected error occurred while placing your bid.');
+        return false;
     }
 }
 
@@ -772,51 +815,57 @@ function loadDemoData() {
         connectionStatusEl.querySelector('.status-text').textContent = 'Demo Mode';
     }
     
-    // Sample auction items
+    // Load demo data
     auctionItems = [
         {
-            id: 'demo-1',
-            title: '2x Masters Tournament Tickets',
-            description: '2x seated tickets for the Masters Tournament, Sunday final round.',
-            category: 'EVENTS',
-            image_url: 'https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?ixlib=rb-4.0.3',
-            current_bid: 450,
-            min_bid: 455,
-            high_bidder: 'John D.',
-            created_at: new Date().toISOString()
+            id: 1,
+            title: 'Signed Masters Flag',
+            description: 'Official Masters flag signed by Tiger Woods',
+            image_url: 'https://via.placeholder.com/150',
+            starting_price: 500,
+            current_bid: 750,
+            category: 'Memorabilia',
+            high_bidder: 'John D.'
         },
         {
-            id: 'demo-2',
-            title: 'Signed Rory McIlroy Cap',
-            description: 'Official tournament cap signed by Rory McIlroy during the 2024 Masters.',
-            category: 'MEMORABILIA',
-            image_url: 'https://images.unsplash.com/photo-1593111774240-d529f12cf4bb?ixlib=rb-4.0.3',
-            current_bid: 180,
-            min_bid: 185,
-            high_bidder: 'Sarah T.',
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 'demo-3',
-            title: 'Premium Golf Club Set',
-            description: 'Complete set of Callaway Paradym clubs including driver, irons, wedges and putter.',
-            category: 'EQUIPMENT',
-            image_url: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?ixlib=rb-4.0.3',
+            id: 2,
+            title: 'VIP Tournament Passes',
+            description: 'Two VIP passes for next year\'s tournament',
+            image_url: 'https://via.placeholder.com/150',
+            starting_price: 1000,
             current_bid: 1200,
-            min_bid: 1225,
-            high_bidder: 'Michael B.',
-            created_at: new Date().toISOString()
+            category: 'Experiences',
+            high_bidder: 'Jane S.'
         },
         {
-            id: 'demo-4',
-            title: 'Golf Lesson with PGA Pro',
-            description: '2-hour private lesson with PGA teaching professional at your local course.',
-            category: 'EXPERIENCES',
-            image_url: 'https://images.unsplash.com/photo-1494260239208-f20ea9c8a7cb?ixlib=rb-4.0.3',
-            current_bid: 300,
-            min_bid: 310,
-            high_bidder: 'Emma L.',
-            created_at: new Date().toISOString()
+            id: 3,
+            title: 'Pro-Am Entry',
+            description: 'Play in the Pro-Am event with a Masters champion',
+            image_url: 'https://via.placeholder.com/150',
+            starting_price: 2000,
+            current_bid: 2500,
+            category: 'Experiences',
+            high_bidder: 'Mike R.'
+        },
+        {
+            id: 4,
+            title: 'Authentic Green Jacket',
+            description: 'Replica of the iconic Masters green jacket',
+            image_url: 'https://via.placeholder.com/150',
+            starting_price: 800,
+            current_bid: 950,
+            category: 'Memorabilia',
+            high_bidder: 'Sarah T.'
+        },
+        {
+            id: 5,
+            title: 'Golf Lesson with Pro',
+            description: 'One-hour lesson with a former Masters champion',
+            image_url: 'https://via.placeholder.com/150',
+            starting_price: 500,
+            current_bid: 650,
+            category: 'Experiences',
+            high_bidder: 'Tom B.'
         }
     ];
     

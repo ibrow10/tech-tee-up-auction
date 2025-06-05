@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Connection Test</title>
+    <!-- Supabase JS Client via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #006747;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        button {
+            background-color: #006747;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #004d34;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Supabase Connection Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Configuration Check</h2>
+        <button onclick="checkConfig()">Check Configuration</button>
+        <div id="config-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Connection Test</h2>
+        <button onclick="testConnection()">Test Connection</button>
+        <div id="connection-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Table Structure Test</h2>
+        <button onclick="checkTableStructure()">Check Table Structure</button>
+        <div id="table-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Query Test</h2>
+        <button onclick="testQuery()">Run Test Query</button>
+        <div id="query-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>5. Create Test Item</h2>
+        <button onclick="createTestItem()">Create Test Item</button>
+        <div id="create-result"></div>
+    </div>
+
+    <script>
+        // Check if configuration is loaded
+        function checkConfig() {
+            const resultDiv = document.getElementById('config-result');
+            resultDiv.innerHTML = '<pre>';
+            
+            try {
+                resultDiv.innerHTML += `SUPABASE_URL defined: ${typeof SUPABASE_URL !== 'undefined'}\n`;
+                resultDiv.innerHTML += `SUPABASE_URL value: ${SUPABASE_URL}\n`;
+                resultDiv.innerHTML += `SUPABASE_ANON_KEY defined: ${typeof SUPABASE_ANON_KEY !== 'undefined'}\n`;
+                resultDiv.innerHTML += `SUPABASE_ANON_KEY length: ${SUPABASE_ANON_KEY ? SUPABASE_ANON_KEY.length : 0}\n`;
+                resultDiv.innerHTML += `Supabase library loaded: ${typeof supabase !== 'undefined'}\n`;
+                
+                if (typeof SUPABASE_URL !== 'undefined' && 
+                    typeof SUPABASE_ANON_KEY !== 'undefined' && 
+                    typeof supabase !== 'undefined') {
+                    resultDiv.innerHTML += '<span class="success">✓ Configuration loaded successfully</span>\n';
+                } else {
+                    resultDiv.innerHTML += '<span class="error">✗ Configuration has issues</span>\n';
+                }
+            } catch (error) {
+                resultDiv.innerHTML += `<span class="error">Error: ${error.message}</span>\n`;
+            }
+            
+            resultDiv.innerHTML += '</pre>';
+        }
+        
+        // Test connection to Supabase
+        async function testConnection() {
+            const resultDiv = document.getElementById('connection-result');
+            resultDiv.innerHTML = '<pre>Testing connection...</pre>';
+            
+            try {
+                const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                // Test with a simple ping query
+                const { data, error } = await supabaseClient.from('auction_items').select('count', { count: 'exact', head: true });
+                
+                if (error) {
+                    resultDiv.innerHTML = `<pre><span class="error">Connection failed: ${error.message}</span>\nError code: ${error.code}\nError details: ${JSON.stringify(error.details)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<pre><span class="success">Connection successful!</span>\nResponse: ${JSON.stringify(data)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<pre><span class="error">Error: ${error.message}</span>\n${error.stack}</pre>`;
+            }
+        }
+        
+        // Check table structure
+        async function checkTableStructure() {
+            const resultDiv = document.getElementById('table-result');
+            resultDiv.innerHTML = '<pre>Checking table structure...</pre>';
+            
+            try {
+                const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                // This is a workaround to get table structure since Supabase JS client doesn't have direct schema inspection
+                const { data, error } = await supabaseClient.rpc('get_table_info', { table_name: 'auction_items' });
+                
+                if (error) {
+                    // If the RPC doesn't exist, try a different approach
+                    const { data: sampleData, error: sampleError } = await supabaseClient
+                        .from('auction_items')
+                        .select('*')
+                        .limit(1);
+                    
+                    if (sampleError) {
+                        resultDiv.innerHTML = `<pre><span class="error">Failed to check table structure: ${sampleError.message}</span></pre>`;
+                    } else if (sampleData && sampleData.length > 0) {
+                        const columns = Object.keys(sampleData[0]);
+                        resultDiv.innerHTML = `<pre><span class="success">Table exists with columns:</span>\n${columns.join('\n')}</pre>`;
+                    } else {
+                        resultDiv.innerHTML = `<pre><span class="warning">Table exists but appears to be empty</span></pre>`;
+                    }
+                } else {
+                    resultDiv.innerHTML = `<pre><span class="success">Table structure:</span>\n${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<pre><span class="error">Error: ${error.message}</span>\n${error.stack}</pre>`;
+            }
+        }
+        
+        // Test query
+        async function testQuery() {
+            const resultDiv = document.getElementById('query-result');
+            resultDiv.innerHTML = '<pre>Running test query...</pre>';
+            
+            try {
+                const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                // Try to get all items
+                const { data, error, count } = await supabaseClient
+                    .from('auction_items')
+                    .select('*', { count: 'exact' });
+                
+                if (error) {
+                    resultDiv.innerHTML = `<pre><span class="error">Query failed: ${error.message}</span></pre>`;
+                } else {
+                    resultDiv.innerHTML = `<pre><span class="success">Query successful!</span>\nFound ${count || data.length} items\n\nFirst few items:\n${JSON.stringify(data?.slice(0, 2), null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<pre><span class="error">Error: ${error.message}</span>\n${error.stack}</pre>`;
+            }
+        }
+        
+        // Create test item
+        async function createTestItem() {
+            const resultDiv = document.getElementById('create-result');
+            resultDiv.innerHTML = '<pre>Creating test item...</pre>';
+            
+            try {
+                const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                // Create a test item
+                const testItem = {
+                    name: `Test Item ${new Date().toISOString()}`,
+                    description: 'This is a test item created from the diagnostic tool',
+                    image_url: 'https://via.placeholder.com/150',
+                    starting_bid: 100,
+                    current_bid: 100,
+                    category: 'Test',
+                    donor: 'Diagnostic Tool'
+                };
+                
+                const { data, error } = await supabaseClient
+                    .from('auction_items')
+                    .insert([testItem])
+                    .select();
+                
+                if (error) {
+                    resultDiv.innerHTML = `<pre><span class="error">Failed to create test item: ${error.message}</span>\nError code: ${error.code}\nError details: ${JSON.stringify(error.details)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<pre><span class="success">Test item created successfully!</span>\n${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<pre><span class="error">Error: ${error.message}</span>\n${error.stack}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -31,8 +31,8 @@
                 const testClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 console.log('Client created successfully');
                 
-                // Test a simple query
-                const { data, error } = await testClient.from('auction_items').select('count', { count: 'exact', head: true });
+                // Test a query that matches the actual table structure
+                const { data, error } = await testClient.from('auction_items').select('id, title, description, starting_price, current_bid, high_bidder').limit(1);
                 
                 if (error) {
                     console.error('Query failed:', error);
