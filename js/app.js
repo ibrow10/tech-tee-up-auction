@@ -22,17 +22,34 @@ currentYearEl.textContent = new Date().getFullYear();
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Initialize Supabase client
-        await connectToSupabase();
+        // Initialize elements
+        initElements();
         
-        // Load auction items
-        await loadAuctionItems();
+        // Verify Supabase configuration
+        console.log('=== SUPABASE CONFIGURATION ===');
+        console.log('SUPABASE_URL:', SUPABASE_URL);
+        console.log('SUPABASE_ANON_KEY length:', SUPABASE_ANON_KEY ? SUPABASE_ANON_KEY.length : 0);
+        console.log('window.supabase available:', typeof window.supabase);
         
-        // Set up event listeners
-        setupEventListeners();
+        // Connect to Supabase
+        const connected = await connectToSupabase();
         
-        // Set up real-time updates
-        setupRealTimeUpdates();
+        if (connected) {
+            // Load auction items
+            await loadAuctionItems();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Set up real-time updates
+            setupRealTimeUpdates();
+        } else {
+            console.warn('Failed to connect to Supabase, loading demo data instead');
+            // Set up event listeners first
+            setupEventListeners();
+            // Load demo data if connection failed
+            loadDemoData();
+        }
     } catch (error) {
         console.error('Error initializing app:', error);
         updateConnectionStatus(false);
@@ -43,29 +60,49 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Connect to Supabase
 async function connectToSupabase() {
     try {
+        console.log('Connecting to Supabase with URL:', SUPABASE_URL);
+        console.log('Anon key available:', SUPABASE_ANON_KEY ? 'Yes (length: ' + SUPABASE_ANON_KEY.length + ')' : 'No');
+        console.log('window.supabase available:', window.supabase ? 'Yes' : 'No');
+        
+        if (!window.supabase) {
+            console.error('Supabase client library not loaded!');
+            updateConnectionStatus(false);
+            showError('Supabase client library failed to load. Please check your internet connection.');
+            return false;
+        }
+        
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('Supabase client created successfully');
         
         // Test the connection with a simple query
-        const { error } = await supabase.from('auction_items').select('count', { count: 'exact', head: true });
+        console.log('Testing connection with a simple query...');
+        const { data, error } = await supabase.from('auction_items').select('count', { count: 'exact', head: true });
         
         if (error) {
             console.error('Supabase connection test failed:', error);
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
+            console.error('Error details:', error.details);
             updateConnectionStatus(false);
             
             // Show specific error for GitHub Pages users
             if (window.location.hostname.includes('github.io')) {
                 showError(`GitHub Pages cannot connect to Supabase due to CORS restrictions. Please visit the Supabase dashboard and add ${window.location.origin} to the allowed domains in API settings.`);
             } else {
-                showError('Database connection failed. Please check your internet connection and try again.');
+                showError(`Database connection failed: ${error.message || 'Unknown error'}. Please check your internet connection and try again.`);
             }
             
             return false;
         }
         
+        console.log('Supabase connection successful!', data);
         updateConnectionStatus(true);
         return true;
     } catch (error) {
         console.error('Error connecting to Supabase:', error);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
         updateConnectionStatus(false);
         
         // Show user-friendly error message
