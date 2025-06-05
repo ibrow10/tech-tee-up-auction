@@ -17,6 +17,37 @@
     <!-- Supabase JS Client via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
+    <script>
+    async function debugSupabaseConnection() {
+        console.log('=== DEBUGGING SUPABASE CONNECTION ===');
+        
+        // Check if variables are defined
+        console.log('SUPABASE_URL defined:', typeof SUPABASE_URL !== 'undefined');
+        console.log('SUPABASE_ANON_KEY defined:', typeof SUPABASE_ANON_KEY !== 'undefined');
+        console.log('Supabase library loaded:', typeof window.supabase !== 'undefined');
+        
+        if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined' && typeof window.supabase !== 'undefined') {
+            try {
+                const testClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('Client created successfully');
+                
+                // Test a simple query
+                const { data, error } = await testClient.from('auction_items').select('count', { count: 'exact', head: true });
+                
+                if (error) {
+                    console.error('Query failed:', error);
+                } else {
+                    console.log('Connection successful!', data);
+                }
+            } catch (err) {
+                console.error('Client creation failed:', err);
+            }
+        }
+    }
+
+    // Run debug when page loads
+    document.addEventListener('DOMContentLoaded', debugSupabaseConnection);
+    </script>
     <style>
         body {
             background-image: url('images/bg-course.jpg');
