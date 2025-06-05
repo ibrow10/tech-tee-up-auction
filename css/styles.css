@@ -725,7 +725,7 @@ header h1::before {
 }
 
 .place-bid-button {
-  background-color: var(--primary-color);
+  background-color: var(--primary); /* Masters green - matching the main bid button */
   color: var(--white);
   border: none;
   padding: 6px 14px;
@@ -739,6 +739,7 @@ header h1::before {
   letter-spacing: 0.5px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   width: 100%;
+  border-radius: 3px; /* Match the main bid button */
 }
 
 .place-bid-button:hover {
@@ -747,7 +748,7 @@ header h1::before {
   box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
-.place-bid-button:focus {
+.place-bid-button:focus,
 .bid-button:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(253, 184, 39, 0.4);

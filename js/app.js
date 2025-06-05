@@ -1,10 +1,21 @@
 // Initialize Supabase Client
+// Debug mode - set to true to enable verbose logging
+const DEBUG_MODE = true;
+
+// Global variables
 let supabase;
 let auctionItems = [];
 let categories = new Set();
 let connectionStatus = false;
 let currentFilter = 'all';
 let errorLogEntries = [];
+
+// Debug logging helper
+function debugLog(...args) {
+    if (DEBUG_MODE) {
+        console.log('[DEBUG]', ...args);
+    }
+}
 
 // Log error to file
 async function logErrorToFile(errorType, errorMessage, details = {}) {
@@ -94,32 +105,97 @@ ${logs || '\n*No errors logged yet.*\n'}`;
     window.open(url, '_blank');
 }
 
-// DOM Elements
-const auctionItemsContainer = document.getElementById('auction-items');
-const connectionStatusEl = document.getElementById('connection-status');
-const categoryFilterEl = document.getElementById('category-filter');
-const searchInputEl = document.getElementById('search-input');
-const searchButtonEl = document.getElementById('search-button');
-const itemModal = document.getElementById('item-modal');
-const bidConfirmationModal = document.getElementById('bid-confirmation-modal');
-const errorModal = document.getElementById('error-modal');
-const errorMessageEl = document.getElementById('error-message');
-const currentYearEl = document.getElementById('current-year');
+// DOM elements - will be initialized in initElements()
+let auctionItemsContainer;
+let connectionStatusEl;
+let categoryFilterEl;
+let searchInputEl;
+let searchButtonEl;
+let itemModal;
+let bidConfirmationModal;
+let errorModal;
+let errorMessageEl;
+let currentYearEl;
 
-// Set current year in footer
-currentYearEl.textContent = new Date().getFullYear();
+// Initialize DOM elements
+function initElements() {
+    console.log('Initializing DOM elements...');
+    try {
+        // Get references to DOM elements
+        auctionItemsContainer = document.getElementById('auction-items');
+        connectionStatusEl = document.getElementById('connection-status');
+        categoryFilterEl = document.getElementById('category-filter');
+        searchInputEl = document.getElementById('search-input');
+        searchButtonEl = document.getElementById('search-button');
+        itemModal = document.getElementById('item-modal');
+        bidConfirmationModal = document.getElementById('bid-confirmation-modal');
+        errorModal = document.getElementById('error-modal');
+        errorMessageEl = document.getElementById('error-message');
+        currentYearEl = document.getElementById('current-year');
+        
+        // Log which elements were found or not found for debugging
+        console.log('DOM Elements initialized:', {
+            auctionItemsContainer: !!auctionItemsContainer,
+            connectionStatusEl: !!connectionStatusEl,
+            categoryFilterEl: !!categoryFilterEl,
+            searchInputEl: !!searchInputEl,
+            searchButtonEl: !!searchButtonEl,
+            itemModal: !!itemModal,
+            bidConfirmationModal: !!bidConfirmationModal,
+            errorModal: !!errorModal,
+            errorMessageEl: !!errorMessageEl,
+            currentYearEl: !!currentYearEl
+        });
+        
+        // Set current year in footer if the element exists
+        if (currentYearEl) {
+            currentYearEl.textContent = new Date().getFullYear();
+        }
+        
+        // Check for critical elements and warn if missing
+        if (!auctionItemsContainer) {
+            console.error('Critical element missing: auction-items container not found');
+        }
+        if (!errorModal || !errorMessageEl) {
+            console.error('Critical element missing: error modal components not found');
+        }
+    } catch (error) {
+        console.error('Error initializing DOM elements:', error);
+    }
+}
+
+// Check if DOM is ready and wait if needed
+function ensureDomReady() {
+    return new Promise(resolve => {
+        if (document.readyState === 'loading') {
+            debugLog('DOM still loading, waiting for DOMContentLoaded event');
+            document.addEventListener('DOMContentLoaded', () => {
+                debugLog('DOM now loaded via event');
+                resolve();
+            });
+        } else {
+            debugLog('DOM already loaded, proceeding immediately');
+            resolve();
+        }
+    });
+}
 
 // Initialize the application
-document.addEventListener('DOMContentLoaded', async () => {
+async function initApp() {
     try {
+        debugLog('=== Initializing Application ===');
+        
+        // Make sure DOM is ready
+        await ensureDomReady();
+        
         // Initialize elements
         initElements();
         
         // Verify Supabase configuration
-        console.log('=== SUPABASE CONFIGURATION ===');
-        console.log('SUPABASE_URL:', SUPABASE_URL);
-        console.log('SUPABASE_ANON_KEY length:', SUPABASE_ANON_KEY ? SUPABASE_ANON_KEY.length : 0);
-        console.log('window.supabase available:', typeof window.supabase);
+        debugLog('=== SUPABASE CONFIGURATION ===');
+        debugLog('SUPABASE_URL:', SUPABASE_URL);
+        debugLog('SUPABASE_ANON_KEY length:', SUPABASE_ANON_KEY ? SUPABASE_ANON_KEY.length : 0);
+        debugLog('window.supabase available:', typeof window.supabase);
         
         // Connect to Supabase
         const connected = await connectToSupabase();
@@ -145,55 +221,60 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateConnectionStatus(false);
         showError('Failed to initialize the application. Please refresh the page.');
     }
-});
+}
 
-// Connect to Supabase - with proxy fallback for GitHub Pages
+// Call initApp when the DOM is loaded
+document.addEventListener('DOMContentLoaded', initApp);
+
+// Connect to Supabase
 async function connectToSupabase() {
     try {
-        console.log('Connecting to Supabase with URL:', SUPABASE_URL);
-        console.log('Anon key available:', SUPABASE_ANON_KEY ? 'Yes (length: ' + SUPABASE_ANON_KEY.length + ')' : 'No');
-        console.log('window.supabase available:', window.supabase ? 'Yes' : 'No');
+        debugLog('=== connectToSupabase ===');
+        debugLog('Connecting to Supabase with URL:', SUPABASE_URL);
+        debugLog('Anon key available:', SUPABASE_ANON_KEY ? 'Yes (length: ' + SUPABASE_ANON_KEY.length + ')' : 'No');
+        debugLog('window.supabase available:', typeof window.supabase);
+        debugLog('window.supabase methods:', window.supabase ? Object.keys(window.supabase) : 'N/A');
+        debugLog('Current hostname:', window.location.hostname);
+        debugLog('Current protocol:', window.location.protocol);
         
-        if (!window.supabase) {
-            console.error('Supabase client library not loaded!');
+        // Check if Supabase client library is loaded
+        if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+            console.error('Supabase client library not loaded or createClient method not available!');
+            console.log('window object keys:', Object.keys(window));
             updateConnectionStatus(false);
-            await showError('Supabase client library failed to load. Please check your internet connection.');
+            await showError('Supabase client library failed to load. Please check your internet connection and reload the page.');
             return false;
         }
         
-        // Create Supabase client
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('Supabase client created successfully');
+        try {
+            // Create Supabase client
+            console.log('Creating Supabase client...');
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log('Supabase client created successfully:', !!supabase);
+            console.log('Supabase client methods:', Object.keys(supabase));
+        } catch (clientError) {
+            console.error('Error creating Supabase client:', clientError);
+            updateConnectionStatus(false);
+            await showError(`Failed to create Supabase client: ${clientError.message}. Please check your configuration.`);
+            return false;
+        }
         
         // Test the connection with a query that matches the actual table structure
         console.log('Testing connection with a query that matches the actual schema...');
-        const { data, error } = await supabase.from('auction_items').select('id, title, description, starting_price, current_bid, high_bidder').limit(1);
+        let data, error;
         
-        // If direct connection fails with CORS error and we're on GitHub Pages, try a proxy approach
-        if (error && window.location.hostname.includes('github.io') && 
-            (error.message?.includes('cors') || error.code === 'CORS')) {
-            
-            console.log('Direct connection failed with CORS error, trying proxy approach...');
-            
-            // Show a notification that we're trying an alternative connection method
-            const notification = document.createElement('div');
-            notification.className = 'proxy-notification';
-            notification.innerHTML = `
-                <div style="position: fixed; top: 20px; right: 20px; background-color: #006747; color: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 1000;">
-                    <strong>Notice:</strong> Using alternative connection method...
-                    <button onclick="this.parentNode.remove()" style="background: none; border: none; color: white; float: right; cursor: pointer; font-weight: bold;">×</button>
-                </div>
-            `;
-            document.body.appendChild(notification);
-            
-            // In a real application, you would implement a proxy service here
-            // For now, we'll just use demo data instead
-            console.log('In a production app, would use a proxy service here');
-            // Set a flag to indicate we're using the proxy approach
-            window.usingProxyMode = true;
-            // Clear the error to indicate "success" so we can load demo data as a fallback
-            error = null;
-            data = { count: 0 }; // This will trigger the empty data handler which loads demo data
+        try {
+            const response = await supabase.from('auction_items').select('id, title, description, starting_price, current_bid, high_bidder').limit(1);
+            data = response.data;
+            error = response.error;
+            console.log('Test query response:', response);
+        } catch (queryError) {
+            console.error('Exception during test query:', queryError);
+            error = {
+                message: queryError.message,
+                name: queryError.name,
+                stack: queryError.stack
+            };
         }
         
         if (error) {
@@ -216,8 +297,8 @@ async function connectToSupabase() {
             // Show specific error based on the error type
             if (error.code === '401') {
                 await showError('Authentication failed. The Supabase API key may be invalid or expired.');
-            } else if (error.message && error.message.includes('cors')) {
-                await showError(`CORS error detected. As of 2025, Supabase handles CORS automatically but has limitations. For GitHub Pages, we recommend deploying to Netlify instead.`);
+            } else if (error.message && (error.message.includes('cors') || error.message.includes('fetch'))) {
+                await showError(`Connection error detected. This is likely due to CORS restrictions or network issues. For GitHub Pages, we recommend deploying to Netlify instead.`);
             } else if (window.location.hostname.includes('github.io')) {
                 await showError(`GitHub Pages cannot connect to Supabase. This is likely due to CORS restrictions or the need for HTTPS. Consider deploying to Netlify instead.`);
             } else {
@@ -247,15 +328,40 @@ async function connectToSupabase() {
 // Load auction items
 async function loadAuctionItems() {
     try {
-        // If we're on GitHub Pages, we might be using the proxy approach
-        // which returns empty data as a signal to use demo data
-        if (window.location.hostname.includes('github.io') && window.usingProxyMode) {
-            console.log('Using proxy mode, loading demo data');
+        // Debug info about current state
+        debugLog('=== loadAuctionItems ===');
+        debugLog('Current URL:', window.location.href);
+        debugLog('Hostname:', window.location.hostname);
+        debugLog('Supabase client initialized:', !!supabase);
+        debugLog('Connection status:', connectionStatus);
+        debugLog('DOM ready:', document.readyState);
+        debugLog('Auction items container exists:', !!auctionItemsContainer);
+        
+        // Verify Supabase client is initialized
+        if (!supabase) {
+            console.error('Supabase client not initialized');
+            await showError('Database connection not initialized. Please refresh the page.');
+            // Try to initialize Supabase
+            const connected = await connectToSupabase();
+            if (!connected) {
+                return;
+            }
+        }
+        
+        console.log('Loading auction items from database...');
+        
+        // Try a simple query first to test connection
+        const testQuery = await supabase.from('auction_items').select('count', { count: 'exact', head: true });
+        console.log('Test query result:', testQuery);
+        
+        if (testQuery.error) {
+            console.error('Test query failed:', testQuery.error);
+            await showError(`Database connection test failed: ${testQuery.error.message}`);
             loadDemoData();
             return;
         }
         
-        console.log('Loading auction items from database...');
+        // Now fetch the actual data
         const { data, error } = await supabase
             .from('auction_items')
             .select('id, title, description, starting_price, current_bid, high_bidder, image_url, category, created_at, updated_at')
@@ -263,28 +369,61 @@ async function loadAuctionItems() {
         
         if (error) {
             console.error('Error loading auction items:', error);
-            await showError('Failed to load auction items. Please try again later.');
+            await showError(`Failed to load auction items: ${error.message}`);
+            // Log the error to our error file
+            await logErrorToFile('Load Items Error', error.message || 'Unknown error', {
+                url: window.location.href,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                error: JSON.stringify(error)
+            });
             // Load demo data on error
             loadDemoData();
             return;
         }
         
         console.log('Auction items loaded:', data);
+        
+        // Validate data
+        if (!data || !Array.isArray(data)) {
+            console.error('Invalid data format received:', data);
+            await showError('Invalid data format received from database');
+            loadDemoData();
+            return;
+        }
+        
         auctionItems = data;
         
         // If no items were found, load demo data
-        if (!auctionItems || auctionItems.length === 0) {
+        if (auctionItems.length === 0) {
             console.log('No auction items found, loading demo data instead');
             loadDemoData();
             return;
         }
         
-        // Convert string prices to numbers if needed
-        auctionItems = auctionItems.map(item => ({
-            ...item,
-            current_bid: typeof item.current_bid === 'string' ? parseFloat(item.current_bid) : item.current_bid,
-            starting_price: typeof item.starting_price === 'string' ? parseFloat(item.starting_price) : item.starting_price
-        }));
+        // Convert string prices to numbers if needed and validate data
+        auctionItems = auctionItems.map(item => {
+            // Ensure all required fields exist
+            const processedItem = {
+                ...item,
+                id: item.id || `temp-${Math.random().toString(36).substring(2, 9)}`,
+                title: item.title || item.name || 'Unnamed Item',
+                description: item.description || 'No description available',
+                current_bid: typeof item.current_bid === 'string' ? parseFloat(item.current_bid) || 0 : (item.current_bid || 0),
+                starting_price: typeof item.starting_price === 'string' ? parseFloat(item.starting_price) || 0 : (item.starting_price || 0),
+                high_bidder: item.high_bidder || '-',
+                category: item.category || 'Uncategorized'
+            };
+            
+            // If current_bid is not set, use starting_price
+            if (!processedItem.current_bid && processedItem.starting_price) {
+                processedItem.current_bid = processedItem.starting_price;
+            }
+            
+            return processedItem;
+        });
+        
+        console.log('Processed auction items:', auctionItems);
         
         // Extract categories
         categories = new Set();
@@ -294,6 +433,10 @@ async function loadAuctionItems() {
             }
         });
         
+        // Update connection status
+        updateConnectionStatus(true);
+        
+        // Render items
         renderAuctionItems(auctionItems);
         populateCategoryFilter();
     } catch (error) {
@@ -312,78 +455,155 @@ async function loadAuctionItems() {
 
 // Render auction items to the DOM
 function renderAuctionItems(items) {
-    // Clear loading spinner
+    debugLog('=== renderAuctionItems ===');
+    debugLog('Items to render:', items ? items.length : 0);
+    
+    // Check if container exists
+    if (!auctionItemsContainer) {
+        console.error('Auction items container not found in the DOM');
+        // Try to get the container again
+        auctionItemsContainer = document.getElementById('auction-items');
+        if (!auctionItemsContainer) {
+            console.error('Still cannot find auction items container, aborting render');
+            return;
+        }
+        debugLog('Found auction items container on retry');
+    }
+    
+    // Clear loading spinner and previous content
+    debugLog('Clearing auction items container');
     auctionItemsContainer.innerHTML = '';
     
-    if (items.length === 0) {
+    // Check if items exist and have length
+    if (!items || !Array.isArray(items) || items.length === 0) {
+        console.warn('No auction items to display');
         auctionItemsContainer.innerHTML = '<div class="no-items">No auction items found</div>';
         return;
     }
     
-    // Sort items by current bid from highest to lowest
-    const sortedItems = [...items].sort((a, b) => b.current_bid - a.current_bid);
+    debugLog('Found', items.length, 'items to render');
     
-    // Create and append each item element with its position index
-    sortedItems.forEach((item, index) => {
-        const itemElement = createAuctionItemElement(item, index);
-        auctionItemsContainer.appendChild(itemElement);
-    });
+    try {
+        // Sort items by current bid from highest to lowest
+        const sortedItems = [...items].sort((a, b) => {
+            // Handle cases where current_bid might be undefined or not a number
+            const bidA = typeof a.current_bid === 'number' ? a.current_bid : parseFloat(a.current_bid) || 0;
+            const bidB = typeof b.current_bid === 'number' ? b.current_bid : parseFloat(b.current_bid) || 0;
+            return bidB - bidA;
+        });
+        
+        console.log('Sorted items:', sortedItems);
+        
+        // Create and append each item element with its position index
+        sortedItems.forEach((item, index) => {
+            try {
+                const itemElement = createAuctionItemElement(item, index);
+                if (itemElement) {
+                    auctionItemsContainer.appendChild(itemElement);
+                }
+            } catch (itemError) {
+                console.error(`Error creating auction item element for item ${item.id || index}:`, itemError);
+            }
+        });
+    } catch (error) {
+        console.error('Error rendering auction items:', error);
+        auctionItemsContainer.innerHTML = '<div class="error">Error displaying auction items</div>';
+    }
 }
 
 // Create auction item element
 function createAuctionItemElement(item, index) {
-    const itemElement = document.createElement('div');
-    itemElement.className = 'lead-row';
-    itemElement.dataset.id = item.id;
-    
-    // Position number (like the Masters leaderboard)
-    const position = document.createElement('div');
-    position.className = 'position';
-    position.textContent = index + 1;
-    
-    // Item details column
-    const itemInfo = document.createElement('div');
-    itemInfo.className = 'item-info';
-    
-    // Title with proper styling
-    const title = document.createElement('p');
-    title.className = 'item-title';
-    // Use title from database (instead of name which was in the old schema)
-    title.textContent = item.title || item.name || 'Unnamed Item';
-    itemInfo.appendChild(title);
-    
-    // Add category as a subtitle
-    if (item.category) {
-        const category = document.createElement('p');
-        category.className = 'item-category';
-        category.textContent = item.category;
-        itemInfo.appendChild(category);
+    try {
+        // Validate item object
+        if (!item || typeof item !== 'object') {
+            console.error('Invalid item object:', item);
+            return null;
+        }
+        
+        // Log item data for debugging
+        debugLog(`Creating element for item ${index}:`, {
+            id: item.id || `missing-id-${index}`,
+            title: item.title || 'Missing Title',
+            category: item.category || 'No Category',
+            current_bid: item.current_bid || 'No Bid',
+            high_bidder: item.high_bidder || 'No Bidder'
+        });
+        
+        // Ensure we have at least minimal valid data
+        if (!item.id && !item.title && !item.current_bid) {
+            console.error('Item missing critical data:', item);
+            return null;
+        }
+        
+        const itemElement = document.createElement('div');
+        itemElement.className = 'lead-row';
+        itemElement.dataset.id = item.id || `temp-${index}`;
+        
+        // Position number (like the Masters leaderboard)
+        const position = document.createElement('div');
+        position.className = 'position';
+        position.textContent = index + 1;
+        
+        // Item details column
+        const itemInfo = document.createElement('div');
+        itemInfo.className = 'item-info';
+        
+        // Title with proper styling
+        const title = document.createElement('p');
+        title.className = 'item-title';
+        // Use title from database (instead of name which was in the old schema)
+        title.textContent = item.title || item.name || 'Unnamed Item';
+        itemInfo.appendChild(title);
+        
+        // Add category as a subtitle
+        if (item.category) {
+            const category = document.createElement('p');
+            category.className = 'item-category';
+            category.textContent = item.category;
+            itemInfo.appendChild(category);
+        }
+        
+        // Current bid column (red box)
+        const bidBox = document.createElement('div');
+        bidBox.className = 'current-bid-box';
+        
+        // Handle case where current_bid might not be a number
+        let currentBid = 0;
+        if (typeof item.current_bid === 'number') {
+            currentBid = item.current_bid;
+        } else if (item.current_bid) {
+            currentBid = parseFloat(item.current_bid) || 0;
+        } else if (typeof item.starting_price === 'number') {
+            currentBid = item.starting_price;
+        } else if (item.starting_price) {
+            currentBid = parseFloat(item.starting_price) || 0;
+        }
+        
+        bidBox.textContent = `€${currentBid.toFixed(2)}`;
+        
+        // High bidder column
+        const bidderInfo = document.createElement('div');
+        bidderInfo.className = 'high-bidder';
+        bidderInfo.textContent = item.high_bidder || '-';
+        
+        // Bid button (green pill)
+        const bidButton = document.createElement('button');
+        bidButton.className = 'btn-bid';
+        bidButton.textContent = 'Bid';
+        bidButton.dataset.id = item.id || `temp-${index}`;
+        
+        // Assemble the item element
+        itemElement.appendChild(position);
+        itemElement.appendChild(itemInfo);
+        itemElement.appendChild(bidBox);
+        itemElement.appendChild(bidderInfo);
+        itemElement.appendChild(bidButton);
+        
+        return itemElement;
+    } catch (error) {
+        console.error(`Error creating auction item element for index ${index}:`, error);
+        return null;
     }
-    
-    // Current bid column (red box)
-    const bidBox = document.createElement('div');
-    bidBox.className = 'current-bid-box';
-    bidBox.textContent = `€${item.current_bid.toFixed(2)}`;
-    
-    // High bidder column
-    const bidderInfo = document.createElement('div');
-    bidderInfo.className = 'high-bidder';
-    bidderInfo.textContent = item.high_bidder || '-';
-    
-    // Bid button (green pill)
-    const bidButton = document.createElement('button');
-    bidButton.className = 'btn-bid';
-    bidButton.textContent = 'Bid';
-    bidButton.dataset.id = item.id;
-    
-    // Assemble the item element
-    itemElement.appendChild(position);
-    itemElement.appendChild(itemInfo);
-    itemElement.appendChild(bidBox);
-    itemElement.appendChild(bidderInfo);
-    itemElement.appendChild(bidButton);
-    
-    return itemElement;
 }
 
 // Populate category filter
@@ -601,29 +821,24 @@ async function handleBidSubmission(e) {
 // Place a bid on an item
 async function placeBid(itemId, bidAmount, bidderName) {
     try {
+        debugLog('Placing bid:', { itemId, bidAmount, bidderName });
+        
         // Find the item
         const item = auctionItems.find(item => item.id === itemId);
         if (!item) {
             await showError('Item not found');
-            return false;
+            return { success: false, message: 'Item not found' };
         }
         
         // Validate bid amount
         if (bidAmount <= item.current_bid) {
-            await showError(`Your bid must be higher than the current bid of $${item.current_bid.toFixed(2)}`);
-            return false;
+            await showError(`Your bid must be higher than the current bid of €${item.current_bid.toFixed(2)}`);
+            return { success: false, message: `Your bid must be higher than the current bid of €${item.current_bid.toFixed(2)}` };
         }
         
-        // If we're in demo mode, just update the local data
-        if (window.usingProxyMode) {
-            console.log('Demo mode: updating local data only');
-            item.current_bid = bidAmount;
-            item.high_bidder = bidderName;
-            renderAuctionItems(auctionItems);
-            return true;
-        }
+        // Proceed with updating the item in Supabase
         
-        console.log(`Placing bid of $${bidAmount} by ${bidderName} on item ${itemId}`);
+        debugLog(`Placing bid of €${bidAmount} by ${bidderName} on item ${itemId}`);
         
         // Update the item in Supabase
         const { data, error } = await supabase
@@ -647,7 +862,7 @@ async function placeBid(itemId, bidAmount, bidderName) {
                 userAgent: navigator.userAgent
             });
             await showError(`Failed to place bid: ${error.message}`);
-            return false;
+            return { success: false, message: error.message };
         }
         
         // Update local data
@@ -658,7 +873,7 @@ async function placeBid(itemId, bidAmount, bidderName) {
         }
         
         renderAuctionItems(auctionItems);
-        return true;
+        return { success: true, data }; // Return success with updated data
     } catch (error) {
         console.error('Error in placeBid:', error);
         await logErrorToFile('Bid Placement Exception', error.message || 'Unknown error', {
@@ -670,7 +885,7 @@ async function placeBid(itemId, bidAmount, bidderName) {
             userAgent: navigator.userAgent
         });
         await showError('An unexpected error occurred while placing your bid.');
-        return false;
+        return { success: false, message: 'An unexpected error occurred while placing your bid.' };
     }
 }
 
@@ -801,112 +1016,17 @@ async function showError(message) {
     }
 }
 
-// Load demo data when database connection fails (especially for GitHub Pages)
-function loadDemoData() {
-    // Close the error modal
-    if (errorModal) {
-        errorModal.style.display = 'none';
-    }
-    
-    // Set connection status to demo mode
-    connectionStatus = true;
-    if (connectionStatusEl) {
-        connectionStatusEl.className = 'demo';
-        connectionStatusEl.querySelector('.status-text').textContent = 'Demo Mode';
-    }
-    
-    // Load demo data
-    auctionItems = [
-        {
-            id: 1,
-            title: 'Signed Masters Flag',
-            description: 'Official Masters flag signed by Tiger Woods',
-            image_url: 'https://via.placeholder.com/150',
-            starting_price: 500,
-            current_bid: 750,
-            category: 'Memorabilia',
-            high_bidder: 'John D.'
-        },
-        {
-            id: 2,
-            title: 'VIP Tournament Passes',
-            description: 'Two VIP passes for next year\'s tournament',
-            image_url: 'https://via.placeholder.com/150',
-            starting_price: 1000,
-            current_bid: 1200,
-            category: 'Experiences',
-            high_bidder: 'Jane S.'
-        },
-        {
-            id: 3,
-            title: 'Pro-Am Entry',
-            description: 'Play in the Pro-Am event with a Masters champion',
-            image_url: 'https://via.placeholder.com/150',
-            starting_price: 2000,
-            current_bid: 2500,
-            category: 'Experiences',
-            high_bidder: 'Mike R.'
-        },
-        {
-            id: 4,
-            title: 'Authentic Green Jacket',
-            description: 'Replica of the iconic Masters green jacket',
-            image_url: 'https://via.placeholder.com/150',
-            starting_price: 800,
-            current_bid: 950,
-            category: 'Memorabilia',
-            high_bidder: 'Sarah T.'
-        },
-        {
-            id: 5,
-            title: 'Golf Lesson with Pro',
-            description: 'One-hour lesson with a former Masters champion',
-            image_url: 'https://via.placeholder.com/150',
-            starting_price: 500,
-            current_bid: 650,
-            category: 'Experiences',
-            high_bidder: 'Tom B.'
-        }
-    ];
-    
-    // Extract categories
-    categories = new Set();
-    auctionItems.forEach(item => {
-        if (item.category) {
-            categories.add(item.category);
-        }
-    });
-    
-    // Render items
-    renderAuctionItems(auctionItems);
-    populateCategoryFilter();
-    
-    // Show demo mode notification
-    const notification = document.createElement('div');
-    notification.className = 'demo-notification';
-    notification.innerHTML = `
-        <div style="position: fixed; bottom: 20px; right: 20px; background-color: #006747; color: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 1000;">
-            <strong>Demo Mode:</strong> Using sample data. Database connection unavailable.
-            <button onclick="this.parentNode.remove()" style="background: none; border: none; color: white; float: right; cursor: pointer; font-weight: bold;">×</button>
-        </div>
-    `;
-    document.body.appendChild(notification);
-}
+// This function has been removed as we no longer need demo data
 
 // Retry connection if disconnected
 setInterval(() => {
     if (!connectionStatus) {
-        console.log('Attempting to reconnect...');
-        connectToSupabase()
-            .then(success => {
-                if (success) {
-                    console.log('Reconnected successfully');
-                    loadAuctionItems();
-                    setupRealTimeUpdates();
-                }
-            })
-            .catch(error => {
-                console.error('Reconnection failed:', error);
-            });
+        console.log('Attempting to reconnect to database...');
+        connectToSupabase().then(connected => {
+            if (connected) {
+                console.log('Reconnected to database!');
+                loadAuctionItems();
+            }
+        });
     }
-}, 10000); // Try every 10 seconds
+}, 30000); // Try every 30 seconds
