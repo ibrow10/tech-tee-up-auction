@@ -1,8 +1,98 @@
 // Initialize Supabase Client
 let supabase;
 let auctionItems = [];
-let connectionStatus = true;
 let categories = new Set();
+let connectionStatus = false;
+let currentFilter = 'all';
+let errorLogEntries = [];
+
+// Log error to file
+async function logErrorToFile(errorType, errorMessage, details = {}) {
+    try {
+        // Create log entry
+        const timestamp = new Date().toISOString();
+        const logEntry = `
+### Error at ${timestamp}
+
+- **Type**: ${errorType}
+- **Message**: ${errorMessage}
+${details ? `- **Details**: \`${JSON.stringify(details)}\`` : ''}
+`;
+        
+        // Store in localStorage for persistent access
+        const existingLogs = localStorage.getItem('errorLogs') || '';
+        localStorage.setItem('errorLogs', existingLogs + logEntry);
+        
+        // Add to in-memory collection
+        errorLogEntries.push({
+            timestamp,
+            type: errorType,
+            message: errorMessage,
+            details
+        });
+        
+        // Create a downloadable error log for the user
+        const errorLogContent = `# Masters Tournament Charity Auction App - Error Log
+
+## Generated at ${timestamp}
+
+${logEntry}`;
+        
+        // Create blob and download link
+        const blob = new Blob([errorLogContent], { type: 'text/markdown' });
+        const downloadUrl = URL.createObjectURL(blob);
+        
+        // Add download link to error modal if it's visible
+        if (errorModal && errorModal.style.display === 'block') {
+            // Remove any existing download links
+            const existingLinks = errorMessageEl.parentNode.querySelectorAll('.error-log-download');
+            existingLinks.forEach(link => link.remove());
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.href = downloadUrl;
+            downloadLink.download = `error_log_${new Date().getTime()}.md`;
+            downloadLink.className = 'btn btn-secondary mt-2 me-2 error-log-download';
+            downloadLink.textContent = 'Download Error Log';
+            downloadLink.style.display = 'inline-block';
+            
+            // Add to modal
+            const buttonContainer = errorMessageEl.parentNode;
+            buttonContainer.appendChild(downloadLink);
+            
+            // Add view all logs button
+            const viewAllLogsButton = document.createElement('button');
+            viewAllLogsButton.textContent = 'View All Error Logs';
+            viewAllLogsButton.className = 'btn btn-info mt-2 me-2 error-log-download';
+            viewAllLogsButton.style.display = 'inline-block';
+            viewAllLogsButton.onclick = function() {
+                viewAllErrorLogs();
+            };
+            buttonContainer.appendChild(viewAllLogsButton);
+        }
+        
+        return true;
+    } catch (err) {
+        console.error('Failed to log error:', err);
+        return false;
+    }
+}
+
+// View all error logs
+function viewAllErrorLogs() {
+    const logs = localStorage.getItem('errorLogs') || '';
+    
+    // Create a full error log markdown document
+    const fullErrorLog = `# Masters Tournament Charity Auction App - Error Log
+
+## Generated at ${new Date().toISOString()}
+
+${logs || '\n*No errors logged yet.*\n'}`;
+    
+    // Create blob and open in new tab
+    const blob = new Blob([fullErrorLog], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+}
 
 // DOM Elements
 const auctionItemsContainer = document.getElementById('auction-items');
@@ -118,15 +208,25 @@ async function connectToSupabase() {
             console.error('Error details:', error.details);
             updateConnectionStatus(false);
             
+            // Log the error to our error.md file
+            await logErrorToFile('Supabase Connection Error', error.message || 'Unknown error', {
+                errorCode: error.code,
+                errorDetails: error.details,
+                url: window.location.href,
+                hostname: window.location.hostname,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent
+            });
+            
             // Show specific error based on the error type
             if (error.code === '401') {
-                showError('Authentication failed. The Supabase API key may be invalid or expired.');
+                await showError('Authentication failed. The Supabase API key may be invalid or expired.');
             } else if (error.message && error.message.includes('cors')) {
-                showError(`CORS error detected. As of 2025, Supabase handles CORS automatically but has limitations. For GitHub Pages, we recommend deploying to Netlify instead.`);
+                await showError(`CORS error detected. As of 2025, Supabase handles CORS automatically but has limitations. For GitHub Pages, we recommend deploying to Netlify instead.`);
             } else if (window.location.hostname.includes('github.io')) {
-                showError(`GitHub Pages cannot connect to Supabase. This is likely due to CORS restrictions or the need for HTTPS. Consider deploying to Netlify instead.`);
+                await showError(`GitHub Pages cannot connect to Supabase. This is likely due to CORS restrictions or the need for HTTPS. Consider deploying to Netlify instead.`);
             } else {
-                showError(`Database connection failed: ${error.message || 'Unknown error'}. Please check your internet connection and try again.`);
+                await showError(`Database connection failed: ${error.message || 'Unknown error'}. Please check your internet connection and try again.`);
             }
             
             return false;
@@ -478,6 +578,11 @@ async function handleBidSubmission(e) {
     } catch (error) {
         console.error('Error placing bid:', error);
         showError('An error occurred while placing your bid. Please try again.');
+        await logErrorToFile('Bid Error', 'An error occurred while placing your bid.', {
+            url: window.location.href,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent
+        });
     }
 }
 
@@ -517,6 +622,11 @@ async function placeBid(itemId, bidAmount, bidderName) {
         return { success: true, data };
     } catch (error) {
         console.error('Error in placeBid:', error);
+        await logErrorToFile('Place Bid Error', error.message, {
+            url: window.location.href,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent
+        });
         return { success: false, message: error.message };
     }
 }
@@ -581,8 +691,8 @@ function updateConnectionStatus(connected) {
     }
 }
 
-// Show error modal
-function showError(message) {
+// Show error message
+async function showError(message) {
     if (errorMessageEl && errorModal) {
         errorMessageEl.textContent = message;
         errorModal.style.display = 'block';
@@ -604,17 +714,47 @@ function showError(message) {
                 </div>
             `;
             errorMessageEl.appendChild(instructionsEl);
-            
-            // Add a button to load demo data
-            const demoButton = document.createElement('button');
-            demoButton.textContent = 'Load Demo Data Instead';
-            demoButton.className = 'place-bid-button';
-            demoButton.style.marginTop = '15px';
-            demoButton.onclick = loadDemoData;
-            errorMessageEl.appendChild(demoButton);
         }
+        if (message.includes('CORS')) {
+            // Add more detailed instructions for CORS issues
+            const instructionsEl = document.createElement('div');
+            instructionsEl.innerHTML = `
+                <div style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+                    <h5>How to Fix CORS Issues:</h5>
+                    <ol>
+                        <li>For GitHub Pages: Consider using a proxy service</li>
+                        <li>For local testing: Ensure you're using HTTPS if required</li>
+                        <li>For custom domains: Set up a reverse proxy or CDN edge middleware</li>
+                    </ol>
+                </div>
+            `;
+            errorMessageEl.appendChild(instructionsEl);
+        }
+        
+        // Add button to load demo data
+        const loadDemoButton = document.createElement('button');
+        loadDemoButton.textContent = 'Load Demo Data Instead';
+        loadDemoButton.className = 'btn btn-primary mt-3';
+        loadDemoButton.style.display = 'inline-block';
+        loadDemoButton.onclick = function() {
+            errorModal.style.display = 'none';
+            loadDemoData();
+        };
+        
+        // Clear any existing buttons except error log buttons
+        const existingButtons = errorMessageEl.parentNode.querySelectorAll('button:not(.error-log-download)');
+        existingButtons.forEach(button => button.remove());
+        
+        // Add the button
+        errorMessageEl.parentNode.appendChild(loadDemoButton);
     } else {
         console.error('Error:', message);
+        // Still log the error even if modal isn't available
+        await logErrorToFile('Connection Error', message, {
+            url: window.location.href,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent
+        });
     }
 }
 
