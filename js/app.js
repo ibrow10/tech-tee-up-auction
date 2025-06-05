@@ -888,7 +888,7 @@ async function placeBid(itemId, bidAmount, bidderName, tableNumber) {
             auctionItems[itemIndex] = updatedItem;
         }
         
-        // Log the bid to history file
+        // Log the bid to Supabase bid history
         await logBidToHistory(item, bidAmount, bidderName, tableNumber);
         
         renderAuctionItems(auctionItems);
