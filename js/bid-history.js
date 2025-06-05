@@ -1,45 +1,67 @@
-// Log bid history to file
+// Log bid history to localStorage
 async function logBidToHistory(item, bidAmount, bidderName, tableNumber) {
     try {
         const timestamp = new Date().toISOString();
         const formattedDate = new Date().toLocaleString();
         
-        // Format the bid entry
-        const bidEntry = `\n## Bid on "${item.title}" - ${formattedDate}\n\n` +
-            `* **Item ID:** ${item.id}\n` +
-            `* **Previous Bid:** €${Math.round(item.current_bid)}\n` +
-            `* **New Bid:** €${Math.round(bidAmount)}\n` +
-            `* **Bidder:** ${bidderName}\n` +
-            `* **Table:** ${tableNumber}\n`;
+        // Create a bid history entry object
+        const bidEntry = {
+            timestamp: timestamp,
+            formattedDate: formattedDate,
+            itemId: item.id,
+            itemTitle: item.title || item.name || 'Unnamed Item',
+            previousBid: Math.round(item.current_bid),
+            newBid: Math.round(bidAmount),
+            bidderName: bidderName,
+            tableNumber: tableNumber
+        };
         
-        // Fetch existing content
-        const response = await fetch('bid-history.md');
-        let existingContent = '';
+        // Get existing bid history from localStorage
+        let bidHistory = [];
+        const storedHistory = localStorage.getItem('bidHistory');
         
-        if (response.ok) {
-            existingContent = await response.text();
-        } else {
-            console.log('Creating new bid history file');
-            existingContent = '# Bid History\n\nThis file contains a history of all bids placed in the auction.\n';
+        if (storedHistory) {
+            try {
+                bidHistory = JSON.parse(storedHistory);
+            } catch (e) {
+                console.error('Error parsing stored bid history:', e);
+                bidHistory = [];
+            }
         }
         
-        // Append new bid
-        const newContent = existingContent + bidEntry;
+        // Add new bid to history
+        bidHistory.push(bidEntry);
         
-        // Save to file using Blob and download
-        const blob = new Blob([newContent], { type: 'text/markdown' });
-        const url = URL.createObjectURL(blob);
+        // Store updated history back to localStorage
+        localStorage.setItem('bidHistory', JSON.stringify(bidHistory));
         
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'bid-history.md';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        console.log('Bid logged to history file');
+        console.log('Bid logged to history in localStorage');
     } catch (error) {
-        console.error('Failed to log bid to history file:', error);
+        console.error('Failed to log bid to history:', error);
     }
+}
+
+// Function to view bid history (can be called from console)
+function viewBidHistory() {
+    try {
+        const storedHistory = localStorage.getItem('bidHistory');
+        
+        if (!storedHistory) {
+            console.log('No bid history found');
+            return [];
+        }
+        
+        const bidHistory = JSON.parse(storedHistory);
+        console.table(bidHistory);
+        return bidHistory;
+    } catch (error) {
+        console.error('Error viewing bid history:', error);
+        return [];
+    }
+}
+
+// Function to clear bid history (can be called from console)
+function clearBidHistory() {
+    localStorage.removeItem('bidHistory');
+    console.log('Bid history cleared');
 }
