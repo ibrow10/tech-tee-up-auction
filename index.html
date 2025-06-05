@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Tee Up Golf & Tennis Charity Auction</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Georgia&family=Roboto+Mono&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Supabase JS Client via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo-container">
+                <img src="images/tech-tee-up-logo.svg" alt="Tech Tee Up" class="header-logo">
+            </div>
+            <div id="connection-status" class="connected">
+                <span class="status-icon"></span>
+                <span class="status-text">Connected</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container masters-leaderboard">
+        
+        <section class="auction-controls">
+            <div class="filter-container">
+                <select id="category-filter" aria-label="Filter by category">
+                    <option value="all">All Categories</option>
+                    <!-- Categories will be populated dynamically -->
+                </select>
+                <div class="search-container">
+                    <input type="text" id="search-input" placeholder="Search items...">
+                    <button id="search-button" aria-label="Search"><i class="fas fa-search"></i><span class="sr-only">Search</span></button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Masters-style Leaderboard Header -->
+        <div class="leaderboard-header">
+            <div class="position-header">POS</div>
+            <div class="item-header">ITEM</div>
+            <div class="bid-header">CURRENT BID</div>
+            <div class="bidder-header">HIGH BIDDER</div>
+            <div class="action-header">ACTION</div>
+        </div>
+
+        <section id="auction-items" class="auction-items-grid">
+            <!-- Auction items will be populated here dynamically -->
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p>Loading auction items...</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Item Detail Modal -->
+    <div id="item-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="modal-content">
+                <!-- Item details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bid Confirmation Modal -->
+    <div id="bid-confirmation-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div class="confirmation-content">
+                <h2>Bid Placed!</h2>
+                <p>Your bid has been successfully placed.</p>
+                <button class="place-bid-button close-confirmation">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="error-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div class="error-content">
+                <h2>Error</h2>
+                <p id="error-message"></p>
+                <button class="place-bid-button close-error">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; <span id="current-year"></span> Charity Auction. All proceeds go to support the Children's Heartbeat Trust, Just Ask and Our Lady's Hospice & Care Services.</p>
+        </div>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/animations.js"></script>
+</body>
+</html>
