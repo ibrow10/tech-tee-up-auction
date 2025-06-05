@@ -81,30 +81,38 @@ async function loadAuctionItems() {
         const { data, error } = await supabase
             .from('auction_items')
             .select('*')
-            .order('created_at', { ascending: false });
+            .order('current_bid', { ascending: false });
         
-        if (error) throw error;
-        
-        if (data) {
-            auctionItems = data;
-            
-            // Extract categories
-            categories = new Set();
-            data.forEach(item => {
-                if (item.category) {
-                    categories.add(item.category);
-                }
-            });
-            
-            // Populate category filter
-            populateCategoryFilter();
-            
-            // Render items
-            renderAuctionItems(auctionItems);
+        if (error) {
+            console.error('Error loading auction items:', error);
+            showError('Failed to load auction items. Please try again later.');
+            return;
         }
+        
+        auctionItems = data;
+        
+        // If no items were found, load demo data
+        if (!auctionItems || auctionItems.length === 0) {
+            console.log('No auction items found, loading demo data instead');
+            loadDemoData();
+            return;
+        }
+        
+        // Extract categories
+        categories = new Set();
+        auctionItems.forEach(item => {
+            if (item.category) {
+                categories.add(item.category);
+            }
+        });
+        
+        renderAuctionItems(auctionItems);
+        populateCategoryFilter();
     } catch (error) {
-        console.error('Error loading auction items:', error);
-        showError('Failed to load auction items. Please try again later.');
+        console.error('Error in loadAuctionItems:', error);
+        showError('An unexpected error occurred while loading auction items.');
+        // Load demo data on any error
+        loadDemoData();
     }
 }
 
@@ -598,7 +606,7 @@ function loadDemoData() {
     
     // Render items
     renderAuctionItems(auctionItems);
-    renderCategories(Array.from(categories));
+    populateCategoryFilter();
     
     // Show demo mode notification
     const notification = document.createElement('div');
