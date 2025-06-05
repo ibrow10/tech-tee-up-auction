@@ -364,7 +364,7 @@ async function loadAuctionItems() {
         // Now fetch the actual data
         const { data, error } = await supabase
             .from('auction_items')
-            .select('id, title, description, starting_price, current_bid, high_bidder, image_url, category, created_at, updated_at')
+            .select('id, title, description, starting_price, current_bid, high_bidder, table_number, image_url, category, created_at, updated_at')
             .order('current_bid', { ascending: false });
         
         if (error) {
