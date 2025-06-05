@@ -579,12 +579,12 @@ function createAuctionItemElement(item, index) {
             currentBid = parseFloat(item.starting_price) || 0;
         }
         
-        bidBox.textContent = `€${currentBid.toFixed(2)}`;
+        bidBox.textContent = `€${Math.round(currentBid)}`;
         
-        // High bidder column
+        // Table number column (instead of high bidder name)
         const bidderInfo = document.createElement('div');
         bidderInfo.className = 'high-bidder';
-        bidderInfo.textContent = item.high_bidder || '-';
+        bidderInfo.textContent = item.table_number ? `Table ${item.table_number}` : '-';
         
         // Bid button (green pill)
         const bidButton = document.createElement('button');
@@ -717,7 +717,7 @@ function showItemDetails(itemId) {
     const modalContent = document.getElementById('modal-content');
     const imageUrl = item.image_url || 'images/placeholder.jpg';
     // Use current_bid for minimum bid calculation - €10 above current bid
-    const minimumBid = (parseFloat(item.current_bid) + 10).toFixed(2);
+    const minimumBid = Math.round(parseFloat(item.current_bid) + 10);
     
     modalContent.innerHTML = `
         <div class="item-detail">
@@ -727,24 +727,25 @@ function showItemDetails(itemId) {
                 <p class="item-detail-description">${item.description || 'No description available'}</p>
                 <div class="item-detail-bid-info">
                     <div>
-                        <p><strong>Current Bid:</strong> €${item.current_bid.toFixed(2)}</p>
+                            <p><strong>Current Bid:</strong> €${Math.round(item.current_bid)}</p>
                     </div>
                     <div>
-                        <p><strong>Minimum Bid:</strong> €${minimumBid}</p>
+                            <p><strong>Minimum Bid:</strong> €${minimumBid}</p>
                     </div>
                 </div>
                 <form class="item-detail-bid-form" id="bid-form">
                     <input type="hidden" id="item-id" value="${item.id}">
                     <input type="text" id="bidder-name" class="bidder-name-input" placeholder="Your Name" required>
+                    <input type="number" id="table-number" class="table-number-input" placeholder="Table Number" required min="1">
                     <div class="bid-amount-container">
-                        <input type="number" id="bid-amount" class="bid-amount-input" min="${minimumBid}" step="0.01" value="${minimumBid}" placeholder="Bid Amount" required>
+                        <input type="number" id="bid-amount" class="bid-amount-input" min="${minimumBid}" step="1" value="${minimumBid}" placeholder="Bid Amount" required>
                         <button type="submit" class="place-bid-button">Place Bid</button>
                     </div>
                     <div class="bid-suggestions">
-                        <button type="button" class="bid-suggestion" data-amount="${(parseFloat(item.current_bid) + 10).toFixed(2)}">+€10</button>
-                        <button type="button" class="bid-suggestion" data-amount="${(parseFloat(item.current_bid) + 25).toFixed(2)}">+€25</button>
-                        <button type="button" class="bid-suggestion" data-amount="${(parseFloat(item.current_bid) + 50).toFixed(2)}">+€50</button>
-                        <button type="button" class="bid-suggestion" data-amount="${(parseFloat(item.current_bid) + 100).toFixed(2)}">+€100</button>
+                        <button type="button" class="bid-suggestion" data-amount="${Math.round(parseFloat(item.current_bid) + 10)}">+€10</button>
+                        <button type="button" class="bid-suggestion" data-amount="${Math.round(parseFloat(item.current_bid) + 25)}">+€25</button>
+                        <button type="button" class="bid-suggestion" data-amount="${Math.round(parseFloat(item.current_bid) + 50)}">+€50</button>
+                        <button type="button" class="bid-suggestion" data-amount="${Math.round(parseFloat(item.current_bid) + 100)}">+€100</button>
                     </div>
                 </form>
             </div>
@@ -773,10 +774,16 @@ async function handleBidSubmission(e) {
     
     const itemId = parseInt(document.getElementById('item-id').value);
     const bidderName = document.getElementById('bidder-name').value.trim();
+    const tableNumber = parseInt(document.getElementById('table-number').value);
     const bidAmount = parseFloat(document.getElementById('bid-amount').value);
     
     if (!bidderName) {
         showError('Please enter your name');
+        return;
+    }
+    
+    if (!tableNumber || isNaN(tableNumber)) {
+        showError('Please enter a valid table number');
         return;
     }
     
@@ -786,7 +793,7 @@ async function handleBidSubmission(e) {
     }
     
     try {
-        const result = await placeBid(itemId, bidAmount, bidderName);
+        const result = await placeBid(itemId, bidAmount, bidderName, tableNumber);
         
         if (result.success) {
             // Close item modal
@@ -818,9 +825,13 @@ async function handleBidSubmission(e) {
 }
 
 // Place a bid on an item
-async function placeBid(itemId, bidAmount, bidderName) {
+async function placeBid(itemId, bidAmount, bidderName, tableNumber) {
     try {
-        debugLog('Placing bid:', { itemId, bidAmount, bidderName });
+        // Round to whole numbers
+        bidAmount = Math.round(bidAmount);
+        tableNumber = Math.round(tableNumber);
+        
+        debugLog('Placing bid:', { itemId, bidAmount, bidderName, tableNumber });
         
         // Find the item
         const item = auctionItems.find(item => item.id === itemId);
@@ -837,7 +848,7 @@ async function placeBid(itemId, bidAmount, bidderName) {
         
         // Proceed with updating the item in Supabase
         
-        debugLog(`Placing bid of €${bidAmount} by ${bidderName} on item ${itemId}`);
+        debugLog(`Placing bid of €${bidAmount} by ${bidderName} (Table ${tableNumber}) on item ${itemId}`);
         
         // Update the item in Supabase
         const { data, error } = await supabase
@@ -845,6 +856,7 @@ async function placeBid(itemId, bidAmount, bidderName) {
             .update({ 
                 current_bid: bidAmount,
                 high_bidder: bidderName,
+                table_number: tableNumber,
                 updated_at: new Date().toISOString()
             })
             .eq('id', itemId)
@@ -856,6 +868,7 @@ async function placeBid(itemId, bidAmount, bidderName) {
                 itemId,
                 bidAmount,
                 bidderName,
+                tableNumber,
                 url: window.location.href,
                 timestamp: new Date().toISOString(),
                 userAgent: navigator.userAgent
@@ -879,6 +892,7 @@ async function placeBid(itemId, bidAmount, bidderName) {
             itemId,
             bidAmount,
             bidderName,
+            tableNumber,
             url: window.location.href,
             timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent

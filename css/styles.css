@@ -712,10 +712,25 @@ header h1::before {
   gap: 10px;
 }
 
-.bidder-name-input {
-  padding: 10px;
-  border: 1px solid var(--medium-gray);
-  border-radius: 4px;
+.bidder-name-input,
+.table-number-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+
+.table-number-input {
+  -moz-appearance: textfield; /* Firefox */
+  appearance: textfield; /* Standard */
+}
+
+.table-number-input::-webkit-outer-spin-button,
+.table-number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .bid-amount-container {

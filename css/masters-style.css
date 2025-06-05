@@ -179,7 +179,7 @@ body {
   justify-self: center;
 }
 
-/* Column 4: High Bidder name */
+/* Column 4: Table Number */
 .lead-row .high-bidder {
   font-size: 0.95rem;
   color: #2D3748; /* dark gray */
