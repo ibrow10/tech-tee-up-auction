@@ -219,21 +219,98 @@ body {
 @media (max-width: 640px) {
   .lead-row {
     grid-template-columns: 30px 1fr 90px 110px 60px;
-    padding: 0.65rem 1rem;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.9rem;
   }
   
   .leaderboard-container {
-    margin: 1rem;
+    margin: 0.5rem;
+    border-radius: 8px;
+    overflow: hidden;
   }
   
   .leaderboard-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
+    padding: 1rem 0.75rem;
   }
   
   .leaderboard-header .subtitle {
     font-size: 0.85rem;
+  }
+
+  .leaderboard-header h1 {
+    font-size: 1.75rem;
+    margin-bottom: 0.25rem;
+  }
+
+  /* Improve bid button visibility */
+  .bid-button {
+    height: 36px;
+    min-width: 60px;
+    font-weight: 700;
+  }
+
+  /* Better spacing for item details */
+  .item-details {
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Make bid amount more visible */
+  .bid-amount {
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  /* Improve bidder name display */
+  .bidder-name {
+    font-size: 0.85rem;
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Better position number display */
+  .position-number {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 380px) {
+  .lead-row {
+    grid-template-columns: 24px 1fr 80px 90px 50px;
+    padding: 0.5rem 0.5rem;
+    gap: 5px;
+    font-size: 0.85rem;
+  }
+
+  .bid-button {
+    min-width: 50px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+
+  .bid-amount {
+    font-size: 1rem;
+  }
+
+  .bidder-name {
+    max-width: 80px;
+  }
+
+  .position-number {
+    width: 24px;
+    height: 24px;
+    font-size: 0.8rem;
+  }
+
+  .leaderboard-header h1 {
+    font-size: 1.5rem;
   }
 }
 
