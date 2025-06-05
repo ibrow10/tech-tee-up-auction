@@ -1,0 +1,749 @@
+/* === Full-Page Background & Overlay === */
+body, html {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Montserrat', sans-serif;
+}
+
+body {
+  /* Background image */
+  background: url('images/bg-course.jpg') no-repeat center center fixed;
+  background-size: cover;
+  position: relative;
+  z-index: 0;
+}
+
+/* Removed overlay effect */
+
+/* === Scoreboard Container === */
+.leaderboard-container {
+  max-width: 860px;                             /* width like a TV broadcast panel */
+  margin: 2rem auto;                            /* center the container */
+  background-color: #FFFFFF; /* fully opaque white */
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* === Header Bar (Masters-Style) === */
+.leaderboard-header {
+  background-color: #0A3128;   /* darker green for better contrast */
+  color: #FFFFFF;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 3px solid #68D391; /* thicker light green border for contrast */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* add shadow for depth */
+}
+
+.leaderboard-header .title {
+  font-family: 'Lora', serif;
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+  color: white;
+}
+
+.leaderboard-header .subtitle {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+}
+
+/* Optional thin accent stripe under header */
+.leaderboard-header + .divider {
+  height: 2px;
+  background-color: #68D391;  /* light accent-green */
+}
+
+/* === Filter Controls === */
+.filter-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #FFFFFF; /* fully opaque white */
+  border-bottom: 1px solid #e0e0e0;
+}
+
+#category-filter {
+  padding: 8px 12px;
+  border: 1px solid #0B3D34;
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+  background-color: white;
+  color: #0B3D34;
+  min-width: 150px;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+}
+
+#search-input {
+  padding: 8px 12px;
+  border: 1px solid #0B3D34;
+  border-radius: 4px 0 0 4px;
+  font-family: 'Montserrat', sans-serif;
+}
+
+#search-button {
+  background-color: #0B3D34;
+  color: white;
+  border: none;
+  border-radius: 0 4px 4px 0;
+  padding: 9px 15px;
+  cursor: pointer;
+}
+
+#search-button:hover {
+  background-color: #0a2e28;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* === Rows (Body of Leaderboard) === */
+.leaderboard-body {
+  padding: 0;
+}
+
+.lead-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 100px 140px 80px;
+  /* columns: position(40px), item info(1fr), bid box(100px), high bidder(140px), button(80px) */
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid #E2E8F0; /* light gray separator */
+  transition: background-color 0.2s ease;
+}
+
+.lead-row:hover {
+  background-color: #D7EBEB; /* solid light teal hover */
+}
+
+/* Column 1: Position bubble (e.g. "1, 2, 3") */
+.lead-row .position {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0B3D34; /* dark green */
+  text-align: center;
+}
+
+/* Column 2: Item Info (title + category) */
+.lead-row .item-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.lead-row .item-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1F2937; /* charcoal gray */
+  margin: 0;
+}
+
+.lead-row .item-category {
+  font-size: 0.75rem;
+  color: #4A5568; /* medium gray */
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin-top: 0.15rem;
+}
+
+/* Column 3: Current Bid (red box) */
+.lead-row .current-bid-box {
+  display: inline-block;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #FFFFFF;
+  background-color: #E53E3E; /* bold red */
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  justify-self: center;
+}
+
+/* Column 4: High Bidder name */
+.lead-row .high-bidder {
+  font-size: 0.95rem;
+  color: #2D3748; /* dark gray */
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Column 5: "Bid" button (green pill) */
+.lead-row .btn-bid {
+  background-color: #2FA05A; /* accent green */
+  color: #FFF;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 9999px; /* stadium shape */
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  justify-self: center;
+}
+
+.lead-row .btn-bid:hover {
+  background-color: #276F46; /* darker on hover */
+  transform: translateY(-1px);
+}
+
+.lead-row .btn-bid:active {
+  transform: translateY(0);
+}
+
+/* Remove bottom border on last row */
+.lead-row:last-child {
+  border-bottom: none;
+}
+
+/* === Responsive (mobile) === */
+@media (max-width: 640px) {
+  .lead-row {
+    grid-template-columns: 30px 1fr 90px 110px 60px;
+    padding: 0.65rem 1rem;
+  }
+  
+  .leaderboard-container {
+    margin: 1rem;
+  }
+  
+  .leaderboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .leaderboard-header .subtitle {
+    font-size: 0.85rem;
+  }
+}
+
+/* Header and Footer Styles */
+header {
+  background-color: #0B3D34;
+  color: white;
+  padding: 1rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-logo {
+  max-height: 60px;
+  width: auto;
+}
+
+#connection-status {
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  margin-left: auto;
+}
+
+.status-icon {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.connected .status-icon {
+  background-color: #48BB78;
+}
+
+.disconnected .status-icon {
+  background-color: #F56565;
+}
+
+footer {
+  background-color: #0B3D34;
+  color: white;
+  text-align: center;
+  padding: 1rem 0;
+  font-size: 0.85rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #000000;
+}
+
+.modal-content {
+  background-color: white;
+  margin: 10% auto;
+  padding: 0;
+  border-radius: 8px;
+  max-width: 500px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  border: 1px solid #68D391;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background-color: #0A3128; /* Masters dark green */
+  color: white;
+  border-bottom: 2px solid #68D391; /* Light green border */
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.close {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.close:hover {
+  opacity: 1;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  background-color: white;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.item-detail-info {
+  flex: 1;
+  padding: 1rem;
+  background-color: white;
+  border-radius: 8px;
+}
+
+.item-detail-title {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #006747; /* Masters green */
+}
+
+.item-detail-description {
+  margin-bottom: 1.5rem;
+  color: #4A5568;
+  line-height: 1.6;
+  font-size: 1rem;
+  background-color: #f9f9f9;
+  padding: 1rem;
+  border-radius: 4px;
+  border-left: 4px solid #006747; /* Masters green */
+}
+
+.item-detail-bid-info {
+  display: flex;
+  justify-content: space-between;
+  background-color: #f0f9f6;
+  border: 1px solid #d1e9e3;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.item-detail-bid-info p {
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.item-detail-bid-info strong {
+  color: #006747; /* Masters green */
+  font-weight: 600;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #CBD5E0;
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1rem;
+}
+
+/* Bid Form Styling */
+.item-detail-bid-form {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background-color: #F7FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+}
+
+.bidder-name-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #CBD5E0;
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.bid-amount-container {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.bid-amount-input {
+  flex: 1;
+  padding: 1rem;
+  border: 2px solid #2FA05A; /* accent green border */
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  min-width: 150px;
+  color: #0A3128; /* dark green text */
+  background-color: #f8f8f8;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.place-bid-button {
+  background-color: #2FA05A; /* accent green - matching leaderboard button */
+  color: white;
+  border: none;
+  border-radius: 9999px; /* stadium shape - matching leaderboard button */
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Montserrat', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.place-bid-button:hover {
+  background-color: #276F46; /* darker on hover - matching leaderboard button */
+  transform: translateY(-1px);
+}
+
+.place-bid-button:active {
+  transform: translateY(0);
+}
+
+.bid-suggestions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  justify-content: space-between;
+}
+
+.bid-suggestion {
+  background-color: #0A3128;
+  color: white;
+  border: 1px solid #68D391;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.bid-suggestion:hover {
+  background-color: #1A5D48;
+  border-color: #9AE6B4;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background-color: #F7FAFC;
+  border-top: 1px solid #E2E8F0;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: 'Montserrat', sans-serif;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+}
+
+.btn-primary {
+  background-color: #006747; /* Masters green */
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:hover {
+  background-color: #004d34;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-secondary {
+  background-color: #F7FAFC;
+  color: #2D3748;
+  border: 1px solid #CBD5E0;
+}
+
+.btn-secondary:hover {
+  background-color: #EDF2F7;
+  border-color: #A0AEC0;
+}
+
+/* Search Container */
+.search-container {
+  background-color: #FFFFFF; /* fully opaque white */
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem auto;
+  max-width: 860px;
+  display: flex;
+  gap: 1rem;
+}
+
+.search-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #CBD5E0;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.search-button {
+  background-color: #2FA05A;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.search-button:hover {
+  background-color: #276F46;
+}
+
+/* Current Bid Box */
+.current-bid-box {
+  background-color: #E53E3E;  /* red box */
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-align: center;
+  min-width: 80px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Animation for bid updates */
+.bid-updated {
+  animation: pulse 1s ease-in-out;
+  box-shadow: 0 0 15px rgba(229, 62, 62, 0.8);
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Modal styling (Masters style) */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #000000; /* fully opaque black */
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Modal header (Masters style) */
+.modal-header {
+  background-color: #0B3D34;
+  color: white;
+  padding: 1rem 1.5rem;
+  border-bottom: 2px solid #68D391;
+}
+
+.modal-header h2 {
+  font-family: 'Lora', serif;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  color: #2D3748;
+}
+
+.close-modal {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 1.5rem;
+  color: white;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Form styling */
+.item-detail-bid-form {
+  margin-top: 1.5rem;
+}
+
+.bidder-name-input,
+.bid-amount-input {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #CBD5E0;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.place-bid-button {
+  background-color: #0B3D34;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 500;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.place-bid-button:hover {
+  background-color: #276F46;
+}
+
+.bid-suggestions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.suggestion {
+  background-color: #E2E8F0;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem;
+  cursor: pointer;
+  flex: 1;
+  font-weight: 500;
+  color: #2D3748;
+}
+
+.suggestion:hover {
+  background-color: #CBD5E0;
+}
+
+/* Bid confirmation modal */
+#bid-confirmation-modal .modal-content {
+  text-align: center;
+  padding: 0;
+}
+
+#bid-confirmation-modal .success-icon {
+  color: #48BB78;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+#bid-confirmation-modal .confirmation-message {
+  font-size: 1.25rem;
+  color: #2D3748;
+  margin-bottom: 0.5rem;
+}
+
+#bid-confirmation-modal .confirmation-details {
+  color: #4A5568;
+  margin-bottom: 1.5rem;
+}
+
+/* Container for the main content */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Main content area */
+main {
+  padding: 2rem 0;
+}
+
+/* Error modal */
+#error-modal .modal-content {
+  border-left: 4px solid #F56565;
+}
+
+#error-modal .error-message {
+  color: #C53030;
+  font-weight: 500;
+}

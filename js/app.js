@@ -109,75 +109,52 @@ function renderAuctionItems(items) {
 // Create auction item element
 function createAuctionItemElement(item, index) {
     const itemElement = document.createElement('div');
-    itemElement.className = 'auction-item';
+    itemElement.className = 'lead-row';
     itemElement.dataset.id = item.id;
     
     // Position number (like the Masters leaderboard)
     const position = document.createElement('div');
-    position.className = 'item-position';
+    position.className = 'position';
     position.textContent = index + 1;
     
     // Item details column
-    const itemDetails = document.createElement('div');
-    itemDetails.className = 'item-details';
+    const itemInfo = document.createElement('div');
+    itemInfo.className = 'item-info';
     
-    // Title row with category badge
-    const titleRow = document.createElement('div');
-    titleRow.className = 'item-title-row';
-    
-    const title = document.createElement('h3');
+    // Title with proper styling
+    const title = document.createElement('p');
     title.className = 'item-title';
-    title.textContent = item.title.toUpperCase();
-    titleRow.appendChild(title);
-    
-    itemDetails.appendChild(titleRow);
+    title.textContent = item.title;
+    itemInfo.appendChild(title);
     
     // Add category as a subtitle
     if (item.category) {
-        const category = document.createElement('span');
+        const category = document.createElement('p');
         category.className = 'item-category';
         category.textContent = item.category;
-        itemDetails.appendChild(category);
+        itemInfo.appendChild(category);
     }
     
-    // Description (shortened for Masters-style)
-    const description = document.createElement('p');
-    description.className = 'item-description';
-    // Truncate description to keep it short like Masters leaderboard
-    const shortDesc = item.description ? 
-        (item.description.length > 60 ? item.description.substring(0, 60) + '...' : item.description) : 
-        'No description available';
-    description.textContent = shortDesc;
-    itemDetails.appendChild(description);
+    // Current bid column (red box)
+    const bidBox = document.createElement('div');
+    bidBox.className = 'current-bid-box';
+    bidBox.textContent = `€${item.current_bid.toFixed(2)}`;
     
-    // Current bid column (red like Masters scoreboard)
-    const bidInfo = document.createElement('div');
-    bidInfo.className = 'bid-info';
-    
-    const currentBid = document.createElement('span');
-    currentBid.className = 'current-bid';
-    currentBid.textContent = `€${item.current_bid.toFixed(2)}`;
-    bidInfo.appendChild(currentBid);
-    
-    // High bidder column (separate from bid info)
+    // High bidder column
     const bidderInfo = document.createElement('div');
-    bidderInfo.className = 'bidder-info';
+    bidderInfo.className = 'high-bidder';
+    bidderInfo.textContent = item.high_bidder || '-';
     
-    const highBidderName = document.createElement('span');
-    highBidderName.className = 'high-bidder-name';
-    highBidderName.textContent = item.high_bidder || '-';
-    bidderInfo.appendChild(highBidderName);
-    
-    // Bid button column (smaller for Masters style)
+    // Bid button (green pill)
     const bidButton = document.createElement('button');
-    bidButton.className = 'bid-button view-details';
-    bidButton.textContent = 'BID';
+    bidButton.className = 'btn-bid';
+    bidButton.textContent = 'Bid';
     bidButton.dataset.id = item.id;
     
     // Assemble the item element
     itemElement.appendChild(position);
-    itemElement.appendChild(itemDetails);
-    itemElement.appendChild(bidInfo);
+    itemElement.appendChild(itemInfo);
+    itemElement.appendChild(bidBox);
     itemElement.appendChild(bidderInfo);
     itemElement.appendChild(bidButton);
     
@@ -215,9 +192,10 @@ function setupEventListeners() {
         }
     });
     
-    // View item details
+    // Bid button click
     auctionItemsContainer.addEventListener('click', (e) => {
-        if (e.target.classList.contains('view-details')) {
+        // Check if bid button was clicked
+        if (e.target.classList.contains('btn-bid')) {
             const itemId = parseInt(e.target.dataset.id);
             showItemDetails(itemId);
         }
@@ -288,6 +266,9 @@ function showItemDetails(itemId) {
         return;
     }
     
+    // Make sure the modal is displayed
+    itemModal.style.display = 'flex';
+    
     const modalContent = document.getElementById('modal-content');
     const imageUrl = item.image_url || 'images/placeholder.jpg';
     const minimumBid = (parseFloat(item.current_bid) + 5).toFixed(2);
@@ -315,10 +296,10 @@ function showItemDetails(itemId) {
                         <button type="submit" class="place-bid-button">Place Bid</button>
                     </div>
                     <div class="bid-suggestions">
-                        <button type="button" class="suggestion" data-amount="${(parseFloat(item.current_bid) + 5).toFixed(2)}">+€5</button>
-                        <button type="button" class="suggestion" data-amount="${(parseFloat(item.current_bid) + 10).toFixed(2)}">+€10</button>
-                        <button type="button" class="suggestion" data-amount="${(parseFloat(item.current_bid) + 25).toFixed(2)}">+€25</button>
-                        <button type="button" class="suggestion" data-amount="${(parseFloat(item.current_bid) + 50).toFixed(2)}">+€50</button>
+                        <button type="button" class="bid-suggestion" data-amount="${(parseFloat(item.current_bid) + 5).toFixed(2)}">+€5</button>
+                        <button type="button" class="bid-suggestion" data-amount="${(parseFloat(item.current_bid) + 10).toFixed(2)}">+€10</button>
+                        <button type="button" class="bid-suggestion" data-amount="${(parseFloat(item.current_bid) + 25).toFixed(2)}">+€25</button>
+                        <button type="button" class="bid-suggestion" data-amount="${(parseFloat(item.current_bid) + 50).toFixed(2)}">+€50</button>
                     </div>
                 </form>
             </div>
@@ -330,7 +311,7 @@ function showItemDetails(itemId) {
     bidForm.addEventListener('submit', handleBidSubmission);
     
     // Set up bid suggestions
-    const suggestions = document.querySelectorAll('.suggestion');
+    const suggestions = document.querySelectorAll('.bid-suggestion');
     suggestions.forEach(suggestion => {
         suggestion.addEventListener('click', () => {
             document.getElementById('bid-amount').value = suggestion.dataset.amount;
@@ -454,9 +435,9 @@ function updateItemDisplay(updatedItem) {
         
         // Add animation to the updated item
         setTimeout(() => {
-            const updatedElement = document.querySelector(`.auction-item[data-id="${updatedItem.id}"]`);
+            const updatedElement = document.querySelector(`.lead-row[data-id="${updatedItem.id}"]`);
             if (updatedElement) {
-                const currentBidEl = updatedElement.querySelector('.current-bid');
+                const currentBidEl = updatedElement.querySelector('.current-bid-box');
                 if (currentBidEl) {
                     currentBidEl.classList.add('bid-updated');
                     

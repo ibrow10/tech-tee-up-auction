@@ -3,12 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tech Tee Up Golf & Tennis Charity Auction</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Tech Tee Up Charity Auction</title>
+    <!-- Google Fonts: Lora (for headings) and Montserrat (for row text) -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lora:wght@700&family=Montserrat:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/masters-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Georgia&family=Roboto+Mono&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <!-- Supabase JS Client via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background-image: url('images/bg-course.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        /* Ensure no overlays */
+        .leaderboard-container {
+            background-color: #FFFFFF;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -25,8 +45,16 @@
 
     <main class="container masters-leaderboard">
         
-        <section class="auction-controls">
-            <div class="filter-container">
+        <div class="leaderboard-container">
+            <!-- Header Bar -->
+            <div class="leaderboard-header">
+                <div class="title">Live Auction Board</div>
+                <div class="subtitle">June 5, 2025 &nbsp;|&nbsp; Tech Tee Up</div>
+            </div>
+            <div class="divider"></div>
+            
+            <!-- Filter and Search Controls -->
+            <div class="filter-controls">
                 <select id="category-filter" aria-label="Filter by category">
                     <option value="all">All Categories</option>
                     <!-- Categories will be populated dynamically -->
@@ -36,32 +64,25 @@
                     <button id="search-button" aria-label="Search"><i class="fas fa-search"></i><span class="sr-only">Search</span></button>
                 </div>
             </div>
-        </section>
-
-        <!-- Masters-style Leaderboard Header -->
-        <div class="leaderboard-header">
-            <div class="position-header">POS</div>
-            <div class="item-header">ITEM</div>
-            <div class="bid-header">CURRENT BID</div>
-            <div class="bidder-header">HIGH BIDDER</div>
-            <div class="action-header">ACTION</div>
-        </div>
-
-        <section id="auction-items" class="auction-items-grid">
-            <!-- Auction items will be populated here dynamically -->
-            <div class="loading-spinner">
-                <div class="spinner"></div>
-                <p>Loading auction items...</p>
+            
+            <!-- Body: each .lead-row is one item -->
+            <div id="auction-items" class="leaderboard-body">
+                <!-- Auction items will be loaded here -->
             </div>
-        </section>
+        </div>
     </main>
 
     <!-- Item Detail Modal -->
     <div id="item-modal" class="modal">
         <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <div id="modal-content">
-                <!-- Item details will be populated here -->
+            <div class="modal-header">
+                <h2>Place Your Bid</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-content">
+                    <!-- Item details will be populated here -->
+                </div>
             </div>
         </div>
     </div>
@@ -69,11 +90,15 @@
     <!-- Bid Confirmation Modal -->
     <div id="bid-confirmation-modal" class="modal">
         <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <div class="confirmation-content">
+            <div class="modal-header">
                 <h2>Bid Placed!</h2>
-                <p>Your bid has been successfully placed.</p>
-                <button class="place-bid-button close-confirmation">OK</button>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="confirmation-content">
+                    <p>Your bid has been successfully placed.</p>
+                    <button class="place-bid-button close-confirmation">OK</button>
+                </div>
             </div>
         </div>
     </div>
@@ -81,18 +106,22 @@
     <!-- Error Modal -->
     <div id="error-modal" class="modal">
         <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <div class="error-content">
+            <div class="modal-header">
                 <h2>Error</h2>
-                <p id="error-message"></p>
-                <button class="place-bid-button close-error">OK</button>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="error-content">
+                    <p id="error-message"></p>
+                    <button class="place-bid-button close-error">OK</button>
+                </div>
             </div>
         </div>
     </div>
 
     <footer>
         <div class="container">
-            <p>&copy; <span id="current-year"></span> Charity Auction. All proceeds go to support the Children's Heartbeat Trust, Just Ask and Our Lady's Hospice & Care Services.</p>
+            <p>All proceeds go to support the Children's Heartbeat Trust, Just Ask and Our Lady's Hospice & Care Services.</p>
         </div>
     </footer>
 

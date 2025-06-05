@@ -1,17 +1,21 @@
 /* Base Styles */
 :root {
-  --primary-color: #0B4A2C; /* Masters tournament green */
-  --secondary-color: #D4AF37; /* Masters gold */
-  --secondary-green: #2D5D3F; /* Lighter accent green */
-  --text-color: #2C2C2C; /* Dark charcoal */
+  --primary: #1F7E34; /* Masters green */
+  --primary-dark: #0B3D34;
+  --primary-light: #68D391;
+  --secondary: #E53E3E; /* Red for scores */
   --white: #FFFFFF;
-  --cream-bg: #FEFEF9; /* Cream/off-white background */
-  --light-gray: #F8F8F5;
-  --medium-gray: #ddd;
-  --dark-gray: #666;
-  --border-radius: 4px; /* Subtle rounded corners */
-  --shadow: 0 2px 5px rgba(0,0,0,0.1);
-  --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --gray-100: #F7FAFC;
+  --gray-200: #EDF2F7;
+  --gray-300: #E2E8F0;
+  --gray-400: #CBD5E0;
+  --gray-500: #A0AEC0;
+  --gray-600: #718096;
+  --gray-700: #4A5568;
+  --gray-800: #2D3748;
+  --gray-900: #1A202C;
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --transition: all 200ms ease;
   --max-width: 1000px; /* Narrower width for leaderboard */
   --content-padding: 1.5rem; /* px-6 */
@@ -41,17 +45,7 @@ body {
   padding: 0;
 }
 
-body::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(255, 255, 255, 0.85);
-  background-image: linear-gradient(to bottom, rgba(11, 74, 44, 0.05), rgba(255, 255, 255, 0));
-  z-index: -1;
-}
+/* Removed overlay effect */
 
 .container {
   width: 100%;
@@ -786,6 +780,7 @@ header h1::before {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
 
 /* Footer */
 footer {
