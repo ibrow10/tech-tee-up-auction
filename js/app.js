@@ -884,6 +884,9 @@ async function placeBid(itemId, bidAmount, bidderName, tableNumber) {
             auctionItems[itemIndex] = updatedItem;
         }
         
+        // Log the bid to history file
+        await logBidToHistory(item, bidAmount, bidderName, tableNumber);
+        
         renderAuctionItems(auctionItems);
         return { success: true, data }; // Return success with updated data
     } catch (error) {
