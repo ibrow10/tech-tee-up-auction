@@ -44,12 +44,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function connectToSupabase() {
     try {
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Test the connection with a simple query
+        const { error } = await supabase.from('auction_items').select('count', { count: 'exact', head: true });
+        
+        if (error) {
+            console.error('Supabase connection test failed:', error);
+            updateConnectionStatus(false);
+            
+            // Show specific error for GitHub Pages users
+            if (window.location.hostname.includes('github.io')) {
+                showError(`GitHub Pages cannot connect to Supabase due to CORS restrictions. Please visit the Supabase dashboard and add ${window.location.origin} to the allowed domains in API settings.`);
+            } else {
+                showError('Database connection failed. Please check your internet connection and try again.');
+            }
+            
+            return false;
+        }
+        
         updateConnectionStatus(true);
         return true;
     } catch (error) {
         console.error('Error connecting to Supabase:', error);
         updateConnectionStatus(false);
-        throw new Error('Failed to connect to database');
+        
+        // Show user-friendly error message
+        showError('Failed to connect to database. Please check your internet connection or try again later.');
+        
+        return false;
     }
 }
 
@@ -472,9 +494,122 @@ function showError(message) {
     if (errorMessageEl && errorModal) {
         errorMessageEl.textContent = message;
         errorModal.style.display = 'block';
+        
+        // For GitHub Pages, add instructions on how to fix
+        if (window.location.hostname.includes('github.io') && message.includes('CORS')) {
+            const instructionsEl = document.createElement('div');
+            instructionsEl.innerHTML = `
+                <div style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #006747;">
+                    <h4 style="margin-top: 0; color: #006747;">How to fix this issue:</h4>
+                    <ol>
+                        <li>Go to your Supabase dashboard</li>
+                        <li>Navigate to Project Settings > API</li>
+                        <li>Under "API Settings", find "Additional allowed origins"</li>
+                        <li>Add <code>${window.location.origin}</code> to the list</li>
+                        <li>Click Save and refresh this page</li>
+                    </ol>
+                    <p><strong>Note:</strong> If you don't have access to the Supabase dashboard, please contact the administrator.</p>
+                </div>
+            `;
+            errorMessageEl.appendChild(instructionsEl);
+            
+            // Add a button to load demo data
+            const demoButton = document.createElement('button');
+            demoButton.textContent = 'Load Demo Data Instead';
+            demoButton.className = 'place-bid-button';
+            demoButton.style.marginTop = '15px';
+            demoButton.onclick = loadDemoData;
+            errorMessageEl.appendChild(demoButton);
+        }
     } else {
         console.error('Error:', message);
     }
+}
+
+// Load demo data when database connection fails (especially for GitHub Pages)
+function loadDemoData() {
+    // Close the error modal
+    if (errorModal) {
+        errorModal.style.display = 'none';
+    }
+    
+    // Set connection status to demo mode
+    connectionStatus = true;
+    if (connectionStatusEl) {
+        connectionStatusEl.className = 'demo';
+        connectionStatusEl.querySelector('.status-text').textContent = 'Demo Mode';
+    }
+    
+    // Sample auction items
+    auctionItems = [
+        {
+            id: 'demo-1',
+            title: '2x Masters Tournament Tickets',
+            description: '2x seated tickets for the Masters Tournament, Sunday final round.',
+            category: 'EVENTS',
+            image_url: 'https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?ixlib=rb-4.0.3',
+            current_bid: 450,
+            min_bid: 455,
+            high_bidder: 'John D.',
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 'demo-2',
+            title: 'Signed Rory McIlroy Cap',
+            description: 'Official tournament cap signed by Rory McIlroy during the 2024 Masters.',
+            category: 'MEMORABILIA',
+            image_url: 'https://images.unsplash.com/photo-1593111774240-d529f12cf4bb?ixlib=rb-4.0.3',
+            current_bid: 180,
+            min_bid: 185,
+            high_bidder: 'Sarah T.',
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 'demo-3',
+            title: 'Premium Golf Club Set',
+            description: 'Complete set of Callaway Paradym clubs including driver, irons, wedges and putter.',
+            category: 'EQUIPMENT',
+            image_url: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?ixlib=rb-4.0.3',
+            current_bid: 1200,
+            min_bid: 1225,
+            high_bidder: 'Michael B.',
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 'demo-4',
+            title: 'Golf Lesson with PGA Pro',
+            description: '2-hour private lesson with PGA teaching professional at your local course.',
+            category: 'EXPERIENCES',
+            image_url: 'https://images.unsplash.com/photo-1494260239208-f20ea9c8a7cb?ixlib=rb-4.0.3',
+            current_bid: 300,
+            min_bid: 310,
+            high_bidder: 'Emma L.',
+            created_at: new Date().toISOString()
+        }
+    ];
+    
+    // Extract categories
+    categories = new Set();
+    auctionItems.forEach(item => {
+        if (item.category) {
+            categories.add(item.category);
+        }
+    });
+    
+    // Render items
+    renderAuctionItems(auctionItems);
+    renderCategories(Array.from(categories));
+    
+    // Show demo mode notification
+    const notification = document.createElement('div');
+    notification.className = 'demo-notification';
+    notification.innerHTML = `
+        <div style="position: fixed; bottom: 20px; right: 20px; background-color: #006747; color: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 1000;">
+            <strong>Demo Mode:</strong> Using sample data. Database connection unavailable.
+            <button onclick="this.parentNode.remove()" style="background: none; border: none; color: white; float: right; cursor: pointer; font-weight: bold;">×</button>
+        </div>
+    `;
+    document.body.appendChild(notification);
 }
 
 // Retry connection if disconnected
