@@ -763,6 +763,13 @@ header h1::before {
   box-shadow: 0 0 0 3px rgba(253, 184, 39, 0.4);
 }
 
+/* Hide high bidder info on mobile */
+@media (max-width: 640px) {
+  .high-bidder-info {
+    display: none;
+  }
+}
+
 /* Loading Spinner */
 .loading-spinner {
   display: flex;

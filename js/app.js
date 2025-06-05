@@ -716,8 +716,8 @@ function showItemDetails(itemId) {
     
     const modalContent = document.getElementById('modal-content');
     const imageUrl = item.image_url || 'images/placeholder.jpg';
-    // Use current_bid for minimum bid calculation
-    const minimumBid = (parseFloat(item.current_bid) + 5).toFixed(2);
+    // Use current_bid for minimum bid calculation - €10 above current bid
+    const minimumBid = (parseFloat(item.current_bid) + 10).toFixed(2);
     
     modalContent.innerHTML = `
         <div class="item-detail">
@@ -728,7 +728,6 @@ function showItemDetails(itemId) {
                 <div class="item-detail-bid-info">
                     <div>
                         <p><strong>Current Bid:</strong> €${item.current_bid.toFixed(2)}</p>
-                        ${item.high_bidder ? `<p><strong>High Bidder:</strong> ${item.high_bidder}</p>` : ''}
                     </div>
                     <div>
                         <p><strong>Minimum Bid:</strong> €${minimumBid}</p>
@@ -742,10 +741,10 @@ function showItemDetails(itemId) {
                         <button type="submit" class="place-bid-button">Place Bid</button>
                     </div>
                     <div class="bid-suggestions">
-                        <button type="button" class="bid-suggestion" data-amount="${(parseFloat(item.current_bid) + 5).toFixed(2)}">+€5</button>
                         <button type="button" class="bid-suggestion" data-amount="${(parseFloat(item.current_bid) + 10).toFixed(2)}">+€10</button>
                         <button type="button" class="bid-suggestion" data-amount="${(parseFloat(item.current_bid) + 25).toFixed(2)}">+€25</button>
                         <button type="button" class="bid-suggestion" data-amount="${(parseFloat(item.current_bid) + 50).toFixed(2)}">+€50</button>
+                        <button type="button" class="bid-suggestion" data-amount="${(parseFloat(item.current_bid) + 100).toFixed(2)}">+€100</button>
                     </div>
                 </form>
             </div>
