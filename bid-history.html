@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auction Bid History</title>
+    <link rel="stylesheet" href="css/masters-style.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .bid-history-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .bid-history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .bid-history-table th, .bid-history-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .bid-history-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        
+        .bid-history-table tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .no-history {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #333;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .timestamp {
+            font-size: 0.85em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Auction Bid History</h1>
+            <a href="index.html" class="back-link">← Back to Auction</a>
+        </div>
+    </header>
+
+    <div class="bid-history-container">
+        <div id="bid-history">
+            <table class="bid-history-table">
+                <thead>
+                    <tr>
+                        <th>Date/Time</th>
+                        <th>Item</th>
+                        <th>Previous Bid</th>
+                        <th>New Bid</th>
+                        <th>Bidder</th>
+                        <th>Table</th>
+                    </tr>
+                </thead>
+                <tbody id="bid-history-rows">
+                    <!-- Bid history will be populated here -->
+                </tbody>
+            </table>
+            <div id="no-history" class="no-history" style="display: none;">
+                <p>No bid history available yet.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Get Supabase URL and key from the main app
+        const SUPABASE_URL = localStorage.getItem('SUPABASE_URL');
+        const SUPABASE_ANON_KEY = localStorage.getItem('SUPABASE_ANON_KEY');
+        
+        // Create Supabase client
+        let supabase;
+        
+        if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log('Supabase client created successfully');
+        } else {
+            console.error('Supabase URL or key not found in localStorage');
+            document.getElementById('no-history').style.display = 'block';
+            document.getElementById('no-history').textContent = 'Error: Supabase configuration not found. Please return to the main auction page first.';
+        }
+        
+        // Function to load bid history
+        async function loadBidHistory() {
+            try {
+                // Query the bid_history table
+                const { data, error } = await supabase
+                    .from('bid_history')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) {
+                    console.error('Error loading bid history:', error);
+                    document.getElementById('no-history').style.display = 'block';
+                    document.getElementById('no-history').textContent = 'Error loading bid history: ' + error.message;
+                    return;
+                }
+                
+                if (!data || data.length === 0) {
+                    document.getElementById('no-history').style.display = 'block';
+                    return;
+                }
+                
+                // Populate the table with bid history
+                const historyRows = document.getElementById('bid-history-rows');
+                historyRows.innerHTML = '';
+                
+                data.forEach(bid => {
+                    const row = document.createElement('tr');
+                    
+                    // Format date
+                    const date = new Date(bid.created_at);
+                    const formattedDate = date.toLocaleString();
+                    
+                    row.innerHTML = `
+                        <td class="timestamp">${formattedDate}</td>
+                        <td>${bid.item_title || 'Unknown Item'}</td>
+                        <td>€${Math.round(bid.previous_bid || 0)}</td>
+                        <td>€${Math.round(bid.bid_amount || 0)}</td>
+                        <td>${bid.bidder_name || 'Anonymous'}</td>
+                        <td>Table ${bid.table_number || '?'}</td>
+                    `;
+                    
+                    historyRows.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error in loadBidHistory:', error);
+                document.getElementById('no-history').style.display = 'block';
+                document.getElementById('no-history').textContent = 'Error loading bid history: ' + error.message;
+            }
+        }
+        
+        // Load bid history when the page loads
+        document.addEventListener('DOMContentLoaded', loadBidHistory);
+    </script>
+</body>
+</html>

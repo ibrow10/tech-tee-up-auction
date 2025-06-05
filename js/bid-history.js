@@ -1,67 +1,44 @@
-// Log bid history to localStorage
+// Log bid history to Supabase
 async function logBidToHistory(item, bidAmount, bidderName, tableNumber) {
     try {
-        const timestamp = new Date().toISOString();
-        const formattedDate = new Date().toLocaleString();
+        // Make sure we have access to the supabase client
+        if (typeof supabase === 'undefined') {
+            console.error('Supabase client is not available');
+            return false;
+        }
         
         // Create a bid history entry object
         const bidEntry = {
-            timestamp: timestamp,
-            formattedDate: formattedDate,
-            itemId: item.id,
-            itemTitle: item.title || item.name || 'Unnamed Item',
-            previousBid: Math.round(item.current_bid),
-            newBid: Math.round(bidAmount),
-            bidderName: bidderName,
-            tableNumber: tableNumber
+            item_id: item.id,
+            item_title: item.title || item.name || 'Unnamed Item',
+            previous_bid: Math.round(item.current_bid),
+            bid_amount: Math.round(bidAmount),
+            bidder_name: bidderName,
+            table_number: tableNumber,
+            created_at: new Date().toISOString()
         };
         
-        // Get existing bid history from localStorage
-        let bidHistory = [];
-        const storedHistory = localStorage.getItem('bidHistory');
+        console.log('Attempting to save bid history:', bidEntry);
         
-        if (storedHistory) {
-            try {
-                bidHistory = JSON.parse(storedHistory);
-            } catch (e) {
-                console.error('Error parsing stored bid history:', e);
-                bidHistory = [];
-            }
+        // Insert the bid history entry into Supabase
+        const { data, error } = await supabase
+            .from('bid_history')
+            .insert([bidEntry]);
+        
+        if (error) {
+            console.error('Error saving bid history to Supabase:', error);
+            return false;
         }
         
-        // Add new bid to history
-        bidHistory.push(bidEntry);
-        
-        // Store updated history back to localStorage
-        localStorage.setItem('bidHistory', JSON.stringify(bidHistory));
-        
-        console.log('Bid logged to history in localStorage');
+        console.log('Bid logged to history in Supabase:', data);
+        return true;
     } catch (error) {
         console.error('Failed to log bid to history:', error);
+        return false;
     }
 }
 
-// Function to view bid history (can be called from console)
+// Function to view bid history page
 function viewBidHistory() {
-    try {
-        const storedHistory = localStorage.getItem('bidHistory');
-        
-        if (!storedHistory) {
-            console.log('No bid history found');
-            return [];
-        }
-        
-        const bidHistory = JSON.parse(storedHistory);
-        console.table(bidHistory);
-        return bidHistory;
-    } catch (error) {
-        console.error('Error viewing bid history:', error);
-        return [];
-    }
-}
-
-// Function to clear bid history (can be called from console)
-function clearBidHistory() {
-    localStorage.removeItem('bidHistory');
-    console.log('Bid history cleared');
+    window.open('bid-history.html', '_blank');
 }

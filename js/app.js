@@ -247,6 +247,10 @@ async function connectToSupabase() {
         }
         
         try {
+            // Store Supabase URL and key in localStorage for the bid history page
+            localStorage.setItem('SUPABASE_URL', SUPABASE_URL);
+            localStorage.setItem('SUPABASE_ANON_KEY', SUPABASE_ANON_KEY);
+            
             // Create Supabase client
             console.log('Creating Supabase client...');
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
