@@ -34,3 +34,9 @@ CREATE POLICY "Allow authenticated insert"
 ON bid_history FOR INSERT 
 TO authenticated
 WITH CHECK (true);
+
+-- Allow anonymous users to insert bid history
+CREATE POLICY "Allow anonymous insert" 
+ON bid_history FOR INSERT 
+TO anon
+WITH CHECK (true);

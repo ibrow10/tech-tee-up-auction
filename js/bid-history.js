@@ -20,6 +20,19 @@ async function logBidToHistory(item, bidAmount, bidderName, tableNumber) {
         
         console.log('Attempting to save bid history:', bidEntry);
         
+        // Check if the bid_history table exists
+        const { error: checkError } = await supabase
+            .from('bid_history')
+            .select('id')
+            .limit(1);
+        
+        if (checkError) {
+            console.error('Error checking bid_history table:', checkError);
+            console.warn('The bid_history table may not exist or you may not have permission to access it.');
+            console.warn('Please run the SQL script in bid_history_table.sql in the Supabase SQL editor.');
+            return false;
+        }
+        
         // Insert the bid history entry into Supabase
         const { data, error } = await supabase
             .from('bid_history')
@@ -27,6 +40,14 @@ async function logBidToHistory(item, bidAmount, bidderName, tableNumber) {
         
         if (error) {
             console.error('Error saving bid history to Supabase:', error);
+            
+            // Check for RLS policy issues
+            if (error.message && (error.message.includes('permission denied') || error.message.includes('policy'))) {
+                console.warn('This appears to be a Row Level Security (RLS) policy issue.');
+                console.warn('Please modify the RLS policy to allow anonymous inserts with:');
+                console.warn(`CREATE POLICY "Allow anonymous insert" ON bid_history FOR INSERT TO anon WITH CHECK (true);`);
+            }
+            
             return false;
         }
         
