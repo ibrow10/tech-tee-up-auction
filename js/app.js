@@ -25,16 +25,22 @@ async function logBidToHistory(item, bidAmount, bidderName, tableNumber) {
             return;
         }
         
+        console.log('Logging bid to history:', { item, bidAmount, bidderName, tableNumber });
+        
+        // Get the previous bid amount from the item
+        const previousBid = item.current_bid || 0;
+        
         const { data, error } = await supabase
             .from('bid_history')
             .insert([
                 {
                     item_id: item.id,
-                    item_name: item.name,
+                    item_title: item.title || item.name, // Use title or fallback to name
+                    previous_bid: previousBid,
                     bid_amount: bidAmount,
                     bidder_name: bidderName,
                     table_number: tableNumber,
-                    timestamp: new Date().toISOString()
+                    created_at: new Date().toISOString() // Match the column name used in bid-history.html
                 }
             ]);
             

@@ -307,10 +307,43 @@
             }
         }
         
-        // Load bid history when the page loads
+        // Set up real-time subscription to bid history updates
+        let bidHistorySubscription = null;
+        
+        async function setupRealTimeUpdates() {
+            try {
+                // Cancel any existing subscription
+                if (bidHistorySubscription) {
+                    bidHistorySubscription.unsubscribe();
+                }
+                
+                console.log('Setting up real-time updates for bid history');
+                
+                // Subscribe to changes in the bid_history table
+                bidHistorySubscription = supabase
+                    .channel('bid_history_changes')
+                    .on('postgres_changes', {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'bid_history'
+                    }, payload => {
+                        console.log('New bid detected:', payload);
+                        // Reload the bid history when a new bid is placed
+                        loadBidHistory();
+                    })
+                    .subscribe();
+                    
+                console.log('Real-time subscription set up successfully');
+            } catch (error) {
+                console.error('Error setting up real-time updates:', error);
+            }
+        }
+        
+        // Load bid history and set up real-time updates when the page loads
         document.addEventListener('DOMContentLoaded', () => {
             loadBidHistory();
             setupAuctionControls();
+            setupRealTimeUpdates();
         });
         
         // Function to set up auction controls - simplified to always set auction as active
