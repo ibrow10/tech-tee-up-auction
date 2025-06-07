@@ -1,6 +1,4 @@
 .bid-history-container {
-    max-width: 1200px;
-    margin: 0 auto;
     padding: 20px;
 }
 
@@ -8,42 +6,84 @@
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
+    font-family: 'Montserrat', sans-serif;
 }
 
 .bid-history-table th, .bid-history-table td {
-    padding: 10px;
+    padding: 12px 15px;
     text-align: left;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid #E2E8F0;
+    font-size: 0.95rem;
 }
 
 .bid-history-table th {
-    background-color: #f2f2f2;
-    font-weight: bold;
+    background-color: #F7FAFC;
+    font-weight: 600;
+    color: #2D3748;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
 }
 
 .bid-history-table tr:hover {
-    background-color: #f5f5f5;
+    background-color: #D7EBEB;
+    transition: background-color 0.2s ease;
 }
 
 .no-history {
     text-align: center;
     padding: 40px;
-    color: #666;
+    color: #4A5568;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.1rem;
 }
 
 .back-link {
     display: inline-block;
     margin-bottom: 20px;
-    color: #333;
+    color: #1F7E34;
     text-decoration: none;
-    font-weight: bold;
+    font-weight: 600;
+    font-family: 'Montserrat', sans-serif;
 }
 
 .back-link:hover {
     text-decoration: underline;
+    color: #276F46;
 }
 
 .timestamp {
     font-size: 0.85em;
-    color: #666;
+    color: #4A5568;
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* Status indicators */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-label {
+    font-weight: 600;
+    color: #2D3748;
+}
+
+.status-text {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 500;
+    background-color: #EDF2F7;
+    color: #2D3748;
+}
+
+.status-active {
+    background-color: #C6F6D5;
+    color: #276749;
+}
+
+.status-paused {
+    background-color: #FED7D7;
+    color: #C53030;
 }

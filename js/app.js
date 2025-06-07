@@ -191,6 +191,10 @@ async function initApp() {
         // Initialize elements
         initElements();
         
+        // Check auction status
+        const auctionStatus = localStorage.getItem('auctionStatus');
+        console.log('Initial auction status:', auctionStatus);
+        
         // Verify Supabase configuration
         debugLog('=== SUPABASE CONFIGURATION ===');
         debugLog('SUPABASE_URL:', SUPABASE_URL);
@@ -775,6 +779,24 @@ function showItemDetails(itemId) {
 // Handle bid submission
 async function handleBidSubmission(e) {
     e.preventDefault();
+    
+    // Check auction status
+    const auctionStatus = localStorage.getItem('auctionStatus');
+    console.log('Current auction status in app.js:', auctionStatus);
+    
+    // If auction is not explicitly set to active, don't allow bids
+    if (auctionStatus !== 'active') {
+        if (auctionStatus === 'paused') {
+            console.log('Auction is paused, preventing bid');
+            showError('Patience......the auction is paused');
+        } else {
+            console.log('Auction is not started, preventing bid');
+            showError('The auction has not started yet');
+        }
+        return;
+    }
+    
+    console.log('Auction is active, allowing bid');
     
     const itemId = parseInt(document.getElementById('item-id').value);
     const bidderName = document.getElementById('bidder-name').value.trim();

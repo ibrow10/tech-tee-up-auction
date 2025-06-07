@@ -29,7 +29,7 @@ body {
 
 /* === Header Bar (Masters-Style) === */
 .leaderboard-header {
-  background-color: #0A3128;   /* darker green for better contrast */
+  background-color: #1F7E34 !important;   /* solid green color with !important to override */
   color: #FFFFFF;
   display: flex;
   justify-content: space-between;
@@ -42,17 +42,21 @@ body {
 .leaderboard-header .title {
   font-family: 'Lora', serif;
   margin: 0;
-  font-size: 2rem;
+  font-size: 2.2rem;
   font-weight: 700;
   letter-spacing: 1px;
-  text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
   color: white;
+  -webkit-text-stroke: 0.5px #68D391;
 }
 
 .leaderboard-header .subtitle {
   font-family: 'Montserrat', sans-serif;
-  font-size: 0.95rem;
+  font-size: 1rem;
   letter-spacing: 0.05em;
+  font-weight: 700;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
 }
 
 /* Optional thin accent stripe under header */
