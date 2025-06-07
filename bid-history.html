@@ -45,26 +45,6 @@
             font-size: 1.4rem;
         }
         
-        /* Header charity logos styling */
-        .header-charity-logos {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-left: 20px;
-        }
-        
-        .header-charity-logo {
-            height: 30px;
-            width: auto;
-            object-fit: contain;
-        }
-        
-        /* Logo container styling */
-        .logo-container {
-            display: flex;
-            align-items: center;
-        }
-        
         .control-buttons {
             display: flex;
             gap: 15px;
@@ -200,12 +180,7 @@
     <header>
         <div class="container">
             <div class="logo-container">
-                <img src="images/tech-tee-up-orange.png" alt="Tech Tee Up" class="header-logo">
-                <div class="header-charity-logos">
-                    <img src="images/CHT MASTER LOGO.png" alt="Children's Heartbeat Trust" class="header-charity-logo">
-                    <img src="images/Just Ask logo.png" alt="Just Ask" class="header-charity-logo">
-                    <img src="images/6585_OLH_Wicklow-Hospice_landscape_RGB_AW_Small.svg" alt="Our Lady's Hospice" class="header-charity-logo">
-                </div>
+                <img src="images/tech-tee-up-white.png" alt="Tech Tee Up" class="header-logo">
             </div>
             <div class="header-right">
                 <div class="nav-links">
@@ -228,21 +203,21 @@
                 </div>
             </div>
             <div class="bid-history-container">
-        <div class="auction-control-panel">
-            <h2>Auction Control Panel</h2>
-            <div class="control-buttons">
-                <button id="start-auction" class="control-btn start-btn">Start Auction</button>
-                <button id="pause-auction" class="control-btn pause-btn">Pause Auction</button>
+                <!-- Auction control panel commented out - auction is always active 
+                <div class="auction-control-panel">
+                    <h2>Auction Control Panel</h2>
+                    <div class="control-buttons">
+                        <button id="start-auction" class="control-btn start-btn">Start Auction</button>
+                        <button id="pause-auction" class="control-btn pause-btn">Pause Auction</button>
+                    </div>
+                </div>
+                -->
+                
+                <div id="auction-status" class="status-indicator">
+                    <span class="status-label">Status:</span>
+                    <span id="status-text" class="status-text">Active</span>
+                </div>
             </div>
-            <div id="auction-status" class="status-indicator">
-                <span class="status-label">Status:</span>
-                <span id="status-text" class="status-text">Not Started</span>
-            </div>
-            <div id="connection-status" class="connected">
-                <span class="status-icon"></span>
-                <span class="status-text">Connected</span>
-            </div>
-        </div>
         <div id="bid-history" class="leaderboard-body">
             <table class="bid-history-table">
                 <thead>
@@ -338,107 +313,18 @@
             setupAuctionControls();
         });
         
-        // Function to set up auction controls
+        // Function to set up auction controls - simplified to always set auction as active
         function setupAuctionControls() {
-            const startButton = document.getElementById('start-auction');
-            const pauseButton = document.getElementById('pause-auction');
             const statusText = document.getElementById('status-text');
             
-            // Check if auction status exists in localStorage
-            const savedStatus = localStorage.getItem('auctionStatus');
-            if (savedStatus) {
-                updateStatusDisplay(savedStatus);
-            }
+            // Always set auction status to active
+            localStorage.setItem('auctionStatus', 'active');
             
-            // Try to get current status from database
-            async function checkDatabaseStatus() {
-                try {
-                    const { data, error } = await supabase
-                        .from('auction_settings')
-                        .select('status')
-                        .eq('id', 1)
-                        .single();
-                    
-                    if (error) {
-                        console.warn('Could not fetch auction status from database:', error);
-                        return;
-                    }
-                    
-                    if (data && data.status) {
-                        localStorage.setItem('auctionStatus', data.status);
-                        updateStatusDisplay(data.status);
-                        console.log('Loaded auction status from database:', data.status);
-                    }
-                } catch (error) {
-                    console.warn('Error checking database status:', error);
-                }
-            }
+            // Update status display to always show active
+            updateStatusDisplay('active');
             
-            // Try to get the status from database, but don't block if it fails
-            checkDatabaseStatus();
-            
-            // Start auction button
-            startButton.addEventListener('click', async () => {
-                try {
-                    // Just update local status for now
-                    // We'll handle database updates when security is configured
-                    console.log('Setting auction status to active');
-                    localStorage.setItem('auctionStatus', 'active');
-                    console.log('Auction status after setting:', localStorage.getItem('auctionStatus'));
-                    updateStatusDisplay('active');
-                    
-                    // Try to update database but don't fail if it doesn't work
-                    try {
-                        const { error } = await supabase
-                            .from('auction_settings')
-                            .upsert({ id: 1, status: 'active', updated_at: new Date().toISOString() });
-                        
-                        if (error) {
-                            console.warn('Could not update database, but local status was updated:', error);
-                        } else {
-                            console.log('Auction started successfully in database');
-                        }
-                    } catch (dbError) {
-                        console.warn('Database update failed, but local status was updated:', dbError);
-                    }
-                    
-                    console.log('Auction started successfully locally');
-                } catch (error) {
-                    console.error('Error starting auction:', error);
-                    alert('Failed to start auction: ' + error.message);
-                }
-            });
-            
-            // Pause auction button
-            pauseButton.addEventListener('click', async () => {
-                try {
-                    // Just update local status for now
-                    // We'll handle database updates when security is configured
-                    localStorage.setItem('auctionStatus', 'paused');
-                    updateStatusDisplay('paused');
-                    
-                    // Try to update database but don't fail if it doesn't work
-                    try {
-                        const { error } = await supabase
-                            .from('auction_settings')
-                            .upsert({ id: 1, status: 'paused', updated_at: new Date().toISOString() });
-                        
-                        if (error) {
-                            console.warn('Could not update database, but local status was updated:', error);
-                        } else {
-                            console.log('Auction paused successfully in database');
-                        }
-                    } catch (dbError) {
-                        console.warn('Database update failed, but local status was updated:', dbError);
-                    }
-                    
-                    console.log('Auction paused successfully locally');
-                } catch (error) {
-                    console.error('Error pausing auction:', error);
-                    alert('Failed to pause auction: ' + error.message);
-                }
-            });
-        } // End of setupAuctionControls function
+            console.log('Auction is set to always active');
+        }
         
         // Function to update status display
         function updateStatusDisplay(status) {

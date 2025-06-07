@@ -223,9 +223,9 @@ async function initApp() {
         // Initialize elements
         initElements();
         
-        // Check auction status
-        const auctionStatus = localStorage.getItem('auctionStatus');
-        console.log('Initial auction status:', auctionStatus);
+        // Always set auction status to active
+        localStorage.setItem('auctionStatus', 'active');
+        console.log('Auction status set to always active');
         
         // Verify Supabase configuration
         debugLog('=== SUPABASE CONFIGURATION ===');
@@ -812,6 +812,9 @@ function showItemDetails(itemId) {
 async function handleBidSubmission(e) {
     e.preventDefault();
     
+    // Always consider the auction active
+    // Commenting out auction status check as requested
+    /*
     // Check auction status
     const auctionStatus = localStorage.getItem('auctionStatus');
     console.log('Current auction status in app.js:', auctionStatus);
@@ -827,8 +830,9 @@ async function handleBidSubmission(e) {
         }
         return;
     }
+    */
     
-    console.log('Auction is active, allowing bid');
+    console.log('Auction is always active, allowing bid');
     
     const itemId = parseInt(document.getElementById('item-id').value);
     const bidderName = document.getElementById('bidder-name').value.trim();
