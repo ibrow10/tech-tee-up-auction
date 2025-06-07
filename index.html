@@ -61,6 +61,26 @@
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
         }
         
+        /* Header charity logos styling */
+        .header-charity-logos {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 20px;
+        }
+        
+        .header-charity-logo {
+            height: 30px;
+            width: auto;
+            object-fit: contain;
+        }
+        
+        /* Logo container styling */
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+        
         /* Header layout */
         .header-right {
             display: flex;
@@ -97,35 +117,7 @@
             background-color: #155e4e;
         }
         
-        /* Header charity logos styling */
-        .header-charity-logos {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-left: 20px;
-        }
-        
-        .header-charity-logo {
-            height: 30px;
-            width: auto;
-            object-fit: contain;
-        }
-        
-        /* Logo container styling */
-        .logo-container {
-            display: flex;
-            align-items: center;
-        }
-        
-        /* Footer bottom section with connection status */
-        .footer-bottom {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-        }
-        
-        /* Charity logos styling in footer */
+        /* Charity logos styling */
         .charity-logos {
             display: flex;
             flex-wrap: wrap;
@@ -173,7 +165,8 @@
             </div>
             <div class="header-right">
                 <div class="nav-links">
-                    <a href="raffle-prizes.html" class="nav-link">View Raffle Prizes</a>
+                    <a href="raffle-prizes.html" class="nav-link">Raffle</a>
+                    <a href="golf-scores.html" class="nav-link">Golf Scores</a>
                 </div>
             </div>
         </div>
@@ -184,7 +177,7 @@
         <div class="leaderboard-container">
             <!-- Header Bar -->
             <div class="leaderboard-header">
-                <div class="title">Live Auction Board</div>
+                <div class="title">Live Auction</div>
                 <div class="subtitle">June 5, 2025 &nbsp;|&nbsp; Tech Tee Up</div>
             </div>
             <div class="divider"></div>
@@ -266,6 +259,7 @@
         </div>
     </footer>
 
+    <script src="js/bid-history.js"></script>
     <script src="js/app.js"></script>
     <script src="js/animations.js"></script>
 </body>
