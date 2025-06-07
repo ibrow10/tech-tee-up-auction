@@ -17,6 +17,38 @@ function debugLog(...args) {
     }
 }
 
+// Log bid to history
+async function logBidToHistory(item, bidAmount, bidderName, tableNumber) {
+    try {
+        if (!supabase) {
+            console.error('Supabase client not initialized');
+            return;
+        }
+        
+        const { data, error } = await supabase
+            .from('bid_history')
+            .insert([
+                {
+                    item_id: item.id,
+                    item_name: item.name,
+                    bid_amount: bidAmount,
+                    bidder_name: bidderName,
+                    table_number: tableNumber,
+                    timestamp: new Date().toISOString()
+                }
+            ]);
+            
+        if (error) {
+            console.error('Error logging bid to history:', error);
+            return;
+        }
+        
+        console.log('Bid successfully logged to history');
+    } catch (error) {
+        console.error('Exception logging bid to history:', error);
+    }
+}
+
 // Log error to file
 async function logErrorToFile(errorType, errorMessage, details = {}) {
     try {
@@ -982,17 +1014,28 @@ function updateItemDisplay(updatedItem) {
 function updateConnectionStatus(connected, statusText) {
     connectionStatus = connected;
     
+    // Just update the global state if the element doesn't exist
     if (!connectionStatusEl) {
         console.warn('Connection status element not found');
         return;
     }
     
-    if (connected) {
-        connectionStatusEl.className = 'connected';
-        connectionStatusEl.querySelector('.status-text').textContent = statusText || 'Connected';
-    } else {
-        connectionStatusEl.className = 'disconnected';
-        connectionStatusEl.querySelector('.status-text').textContent = statusText || 'Disconnected';
+    try {
+        if (connected) {
+            connectionStatusEl.className = 'connected';
+            const statusTextEl = connectionStatusEl.querySelector('.status-text');
+            if (statusTextEl) {
+                statusTextEl.textContent = statusText || 'Connected';
+            }
+        } else {
+            connectionStatusEl.className = 'disconnected';
+            const statusTextEl = connectionStatusEl.querySelector('.status-text');
+            if (statusTextEl) {
+                statusTextEl.textContent = statusText || 'Disconnected';
+            }
+        }
+    } catch (error) {
+        console.warn('Error updating connection status UI:', error);
     }
 }
 
@@ -1063,75 +1106,7 @@ async function showError(message) {
     }
 }
 
-// Load demo data if connection fails
-function loadDemoData() {
-    console.log('Loading demo data...');
-    const demoItems = [
-        {
-            id: 1,
-            title: 'Masters Flag signed by Tiger Woods',
-            description: 'Authentic Masters flag signed by 5-time champion Tiger Woods',
-            starting_price: 500,
-            current_bid: 750,
-            high_bidder: 'John D.',
-            table_number: 12,
-            image_url: 'images/demo-item1.jpg',
-            category: 'Memorabilia'
-        },
-        {
-            id: 2,
-            title: 'Rory McIlroy Signed Golf Glove',
-            description: 'Tournament-worn golf glove signed by Rory McIlroy',
-            starting_price: 300,
-            current_bid: 425,
-            high_bidder: 'Sarah M.',
-            table_number: 5,
-            image_url: 'images/demo-item2.jpg',
-            category: 'Apparel'
-        },
-        {
-            id: 3,
-            title: 'Golf Lesson with PGA Pro',
-            description: '1-hour private lesson with PGA teaching professional',
-            starting_price: 200,
-            current_bid: 275,
-            high_bidder: 'Mike T.',
-            table_number: 8,
-            image_url: 'images/demo-item3.jpg',
-            category: 'Experiences'
-        },
-        {
-            id: 4,
-            title: 'Limited Edition Masters Book',
-            description: "Collector's edition book featuring the history of the Masters Tournament",
-            starting_price: 150,
-            current_bid: 200,
-            high_bidder: 'Emma L.',
-            table_number: 3,
-            image_url: 'images/demo-item4.jpg',
-            category: 'Memorabilia'
-        },
-        {
-            id: 5,
-            title: 'Premium Golf Club Set',
-            description: 'Complete set of premium golf clubs with bag',
-            starting_price: 800,
-            current_bid: 950,
-            high_bidder: 'Robert J.',
-            table_number: 15,
-            image_url: 'images/demo-item5.jpg',
-            category: 'Equipment'
-        }
-    ];
-    
-    // Store items and render
-    auctionItems = demoItems;
-    renderAuctionItems(demoItems);
-    populateCategoryFilter();
-    
-    // Update connection status to show we're in demo mode
-    updateConnectionStatus(false, 'Demo Mode');
-}
+// This function has been removed as we no longer need demo data
 
 // Retry connection if disconnected
 setInterval(() => {
