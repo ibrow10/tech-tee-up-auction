@@ -45,6 +45,26 @@
             font-size: 1.4rem;
         }
         
+        /* Header charity logos styling */
+        .header-charity-logos {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 20px;
+        }
+        
+        .header-charity-logo {
+            height: 30px;
+            width: auto;
+            object-fit: contain;
+        }
+        
+        /* Logo container styling */
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+        
         .control-buttons {
             display: flex;
             gap: 15px;
@@ -180,7 +200,12 @@
     <header>
         <div class="container">
             <div class="logo-container">
-                <img src="images/tech-tee-up-white.png" alt="Tech Tee Up" class="header-logo">
+                <img src="images/tech-tee-up-orange.png" alt="Tech Tee Up" class="header-logo">
+                <div class="header-charity-logos">
+                    <img src="images/CHT MASTER LOGO.png" alt="Children's Heartbeat Trust" class="header-charity-logo">
+                    <img src="images/Just Ask logo.png" alt="Just Ask" class="header-charity-logo">
+                    <img src="images/6585_OLH_Wicklow-Hospice_landscape_RGB_AW_Small.svg" alt="Our Lady's Hospice" class="header-charity-logo">
+                </div>
             </div>
             <div class="header-right">
                 <div class="nav-links">
@@ -212,6 +237,10 @@
             <div id="auction-status" class="status-indicator">
                 <span class="status-label">Status:</span>
                 <span id="status-text" class="status-text">Not Started</span>
+            </div>
+            <div id="connection-status" class="connected">
+                <span class="status-icon"></span>
+                <span class="status-text">Connected</span>
             </div>
         </div>
         <div id="bid-history" class="leaderboard-body">
