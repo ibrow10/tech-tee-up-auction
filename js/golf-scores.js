@@ -6,6 +6,7 @@ let supabase;
 let connectionStatus = false;
 let golfScores = [];
 const COURSE_PAR = 69; // Par for this specific course
+let leaderboardBlurred = localStorage.getItem('leaderboardBlurred') === 'true' || false; // Track if top 3 scores are blurred
 
 // DOM elements - will be initialized in initElements()
 let scoresTableBody;
@@ -383,6 +384,11 @@ function renderGolfScores() {
         else if (score.toPar > 0) rowClass = 'over-par';
         else rowClass = 'at-par';
         
+        // Apply blurring to top 3 scores if blurring is enabled
+        if (leaderboardBlurred && index < 3) {
+            rowClass += ' blurred-score';
+        }
+        
         row.className = rowClass;
         
         // Add position number and all score data
@@ -645,12 +651,31 @@ async function submitScore(teamId, grossScore, handicap) {
 
 // Set up real-time updates
 function setupRealTimeUpdates() {
-    supabase
-        .channel('golf_scores_changes')
-        .on('postgres_changes', 
-            { event: '*', schema: 'public', table: 'golf_scores' }, 
-            handleScoreChange)
+    if (!supabase) return;
+    
+    // Subscribe to changes in the golf_scores table
+    const channel = supabase
+        .channel('golf-scores-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'golf_scores' }, handleScoreChange)
         .subscribe();
+}
+
+// Toggle leaderboard blur state
+function toggleLeaderboardBlur(blurred) {
+    // If no argument is provided, toggle the current state
+    if (blurred === undefined) {
+        leaderboardBlurred = !leaderboardBlurred;
+    } else {
+        leaderboardBlurred = blurred;
+    }
+    
+    // Save the state to localStorage
+    localStorage.setItem('leaderboardBlurred', leaderboardBlurred);
+    
+    // Re-render the leaderboard with the new blur state
+    renderGolfScores();
+    
+    return leaderboardBlurred;
 }
 
 // Handle real-time score changes

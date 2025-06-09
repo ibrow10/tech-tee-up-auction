@@ -78,6 +78,13 @@
             background-color: #d32f2f;
         }
         
+        .active-button {
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+            transform: scale(1.05);
+            font-weight: bold;
+            border: 2px solid #333;
+        }
+        
         .status-indicator {
             display: flex;
             align-items: center;
@@ -192,6 +199,30 @@
         </div>
     </header>
 
+    <!-- Auction Control Panel -->
+    <div class="container control-container">
+        <div class="auction-control-panel">
+            <h2>Auction Control</h2>
+            <div class="control-buttons">
+                <button id="start-auction" class="control-btn start-btn">Start Auction</button>
+                <button id="pause-auction" class="control-btn pause-btn">Pause Auction</button>
+            </div>
+            <div class="status-indicator">
+                <span class="status-label">Status:</span>
+                <span id="status-text" class="status-text">Loading...</span>
+            </div>
+            <hr class="control-divider">
+            <h2>Golf Leaderboard Control</h2>
+            <div class="control-buttons">
+                <button id="toggle-leaderboard-blur" class="control-btn">Blur Top 3 Scores</button>
+            </div>
+            <div class="status-indicator">
+                <span class="status-label">Blur Status:</span>
+                <span id="blur-status-text" class="status-text">Loading...</span>
+            </div>
+        </div>
+    </div>
+    
     <div class="container">
         <div class="leaderboard-container">
             <div class="leaderboard-header">
@@ -204,20 +235,7 @@
                 </div>
             </div>
             <div class="bid-history-container">
-                <!-- Auction control panel commented out - auction is always active 
-                <div class="auction-control-panel">
-                    <h2>Auction Control Panel</h2>
-                    <div class="control-buttons">
-                        <button id="start-auction" class="control-btn start-btn">Start Auction</button>
-                        <button id="pause-auction" class="control-btn pause-btn">Pause Auction</button>
-                    </div>
-                </div>
-                -->
-                
-                <div id="auction-status" class="status-indicator">
-                    <span class="status-label">Status:</span>
-                    <span id="status-text" class="status-text">Active</span>
-                </div>
+                <!-- Auction control panel moved to header -->
             </div>
         <div id="bid-history" class="leaderboard-body">
             <table class="bid-history-table">
@@ -242,6 +260,11 @@
     </div>
     </div>
     </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- Toast notifications only - modal removed -->
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
@@ -347,34 +370,163 @@
             setupRealTimeUpdates();
         });
         
-        // Function to set up auction controls - simplified to always set auction as active
+        // Function to set up auction controls
         function setupAuctionControls() {
             const statusText = document.getElementById('status-text');
+            const startButton = document.getElementById('start-auction');
+            const pauseButton = document.getElementById('pause-auction');
+            const toggleBlurButton = document.getElementById('toggle-leaderboard-blur');
+            const blurStatusText = document.getElementById('blur-status-text');
             
-            // Always set auction status to active
-            localStorage.setItem('auctionStatus', 'active');
+            // Get current auction status from localStorage
+            const currentStatus = localStorage.getItem('auctionStatus') || 'paused';
             
-            // Update status display to always show active
-            updateStatusDisplay('active');
+            // Get current blur status from localStorage
+            const isBlurred = localStorage.getItem('leaderboardBlurred') === 'true';
             
-            console.log('Auction is set to always active');
+            // Update the display based on current status
+            updateStatusDisplay(currentStatus);
+            updateBlurStatusDisplay(isBlurred);
+            
+            // Add event listeners to buttons
+            startButton.addEventListener('click', () => {
+                localStorage.setItem('auctionStatus', 'active');
+                updateStatusDisplay('active');
+                showNotification('success', 'Auction Started', 'The auction is now active and accepting bids.');
+            });
+            
+            pauseButton.addEventListener('click', () => {
+                localStorage.setItem('auctionStatus', 'paused');
+                updateStatusDisplay('paused');
+                showNotification('warning', 'Auction Paused', 'The auction is now paused. No bids will be accepted.');
+            });
+            
+            // Add event listener for toggle blur button
+            toggleBlurButton.addEventListener('click', () => {
+                const currentBlurState = localStorage.getItem('leaderboardBlurred') === 'true';
+                const newBlurState = !currentBlurState;
+                
+                localStorage.setItem('leaderboardBlurred', newBlurState);
+                updateBlurStatusDisplay(newBlurState);
+                
+                const notificationType = newBlurState ? 'info' : 'success';
+                const notificationTitle = newBlurState ? 'Leaderboard Blurred' : 'Leaderboard Revealed';
+                const notificationMessage = newBlurState ? 
+                    'The top 3 scores on the golf leaderboard are now blurred.' : 
+                    'The top 3 scores on the golf leaderboard are now visible.';
+                
+                showNotification(notificationType, notificationTitle, notificationMessage);
+            });
+            
+            // Set initial button state
+            if (currentStatus === 'active') {
+                startButton.classList.add('active-button');
+            } else if (currentStatus === 'paused') {
+                pauseButton.classList.add('active-button');
+            }
+            
+            console.log('Auction controls initialized with status:', currentStatus);
         }
         
         // Function to update status display
         function updateStatusDisplay(status) {
             const statusText = document.getElementById('status-text');
-            statusText.classList.remove('status-active', 'status-paused');
+            const startButton = document.getElementById('start-auction');
+            const pauseButton = document.getElementById('pause-auction');
             
-            if (status === 'active') {
-                statusText.textContent = 'Active';
-                statusText.classList.add('status-active');
-            } else if (status === 'paused') {
-                statusText.textContent = 'Paused';
-                statusText.classList.add('status-paused');
-            } else {
-                statusText.textContent = 'Not Started';
+            if (statusText) {
+                statusText.textContent = status === 'active' ? 'Active' : 'Paused';
+                statusText.className = status === 'active' ? 'status-text active' : 'status-text paused';
+            }
+            
+            if (startButton && pauseButton) {
+                if (status === 'active') {
+                    startButton.classList.add('active-button');
+                    pauseButton.classList.remove('active-button');
+                } else {
+                    pauseButton.classList.add('active-button');
+                    startButton.classList.remove('active-button');
+                }
             }
         }
+        
+        // Function to update blur status display
+        function updateBlurStatusDisplay(isBlurred) {
+            const blurStatusText = document.getElementById('blur-status-text');
+            const toggleBlurButton = document.getElementById('toggle-leaderboard-blur');
+            
+            if (blurStatusText) {
+                blurStatusText.textContent = isBlurred ? 'Blurred' : 'Visible';
+                blurStatusText.className = isBlurred ? 'status-text paused' : 'status-text active';
+            }
+            
+            if (toggleBlurButton) {
+                toggleBlurButton.textContent = isBlurred ? 'Show Top 3 Scores' : 'Blur Top 3 Scores';
+                if (isBlurred) {
+                    toggleBlurButton.classList.remove('pause-btn');
+                    toggleBlurButton.classList.add('start-btn');
+                } else {
+                    toggleBlurButton.classList.remove('start-btn');
+                    toggleBlurButton.classList.add('pause-btn');
+                }
+            }
+        }
+        
+        // Function to show notification
+        function showNotification(type, title, message) {
+            // Only show toast notification
+            showToast(type, title + ': ' + message);
+        }
+        
+        // Show toast notification
+        function showToast(type, message, onClick = null) {
+            const container = document.getElementById('toast-container');
+            
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast-notification ${type}`;
+            
+            // Create content
+            const content = document.createElement('div');
+            content.className = 'toast-content';
+            content.textContent = message;
+            
+            // Add click handler if provided
+            if (onClick) {
+                content.style.cursor = 'pointer';
+                content.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    onClick();
+                });
+            }
+            
+            // Create close button
+            const closeBtn = document.createElement('span');
+            closeBtn.className = 'toast-close';
+            closeBtn.innerHTML = '&times;';
+            closeBtn.onclick = function(e) {
+                e.stopPropagation();
+                toast.remove();
+            };
+            
+            // Assemble toast
+            toast.appendChild(content);
+            toast.appendChild(closeBtn);
+            
+            // Add to container
+            container.appendChild(toast);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+            
+            return toast;
+        }
+        
+        // All modal-related event listeners removed - using only toast notifications
     </script>
     <footer>
         <div class="container">

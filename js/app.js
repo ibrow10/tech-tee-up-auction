@@ -91,33 +91,25 @@ ${logEntry}`;
         const blob = new Blob([errorLogContent], { type: 'text/markdown' });
         const downloadUrl = URL.createObjectURL(blob);
         
-        // Add download link to error modal if it's visible
-        if (errorModal && errorModal.style.display === 'block') {
-            // Remove any existing download links
-            const existingLinks = errorMessageEl.parentNode.querySelectorAll('.error-log-download');
-            existingLinks.forEach(link => link.remove());
-            
-            const downloadLink = document.createElement('a');
-            downloadLink.href = downloadUrl;
-            downloadLink.download = `error_log_${new Date().getTime()}.md`;
-            downloadLink.className = 'btn btn-secondary mt-2 me-2 error-log-download';
-            downloadLink.textContent = 'Download Error Log';
-            downloadLink.style.display = 'inline-block';
-            
-            // Add to modal
-            const buttonContainer = errorMessageEl.parentNode;
-            buttonContainer.appendChild(downloadLink);
-            
-            // Add view all logs button
-            const viewAllLogsButton = document.createElement('button');
-            viewAllLogsButton.textContent = 'View All Error Logs';
-            viewAllLogsButton.className = 'btn btn-info mt-2 me-2 error-log-download';
-            viewAllLogsButton.style.display = 'inline-block';
-            viewAllLogsButton.onclick = function() {
-                viewAllErrorLogs();
-            };
-            buttonContainer.appendChild(viewAllLogsButton);
-        }
+        // Create a download link for the error log
+        const downloadLink = document.createElement('a');
+        downloadLink.href = downloadUrl;
+        downloadLink.download = `error_log_${new Date().getTime()}.md`;
+        downloadLink.textContent = 'Download Error Log';
+        downloadLink.style.display = 'none'; // Hidden link
+        document.body.appendChild(downloadLink);
+        
+        // Show toast notification with option to download log
+        const toastMessage = 'Error logged. Click here to download the error log.';
+        showToastNotification('error', toastMessage, () => {
+            // Trigger download when toast is clicked
+            downloadLink.click();
+        });
+        
+        // Clean up the link after toast is dismissed
+        setTimeout(() => {
+            document.body.removeChild(downloadLink);
+        }, 5500); // Toast duration (5000) + animation (500)
         
         return true;
     } catch (err) {
@@ -150,9 +142,7 @@ let categoryFilterEl;
 let searchInputEl;
 let searchButtonEl;
 let itemModal;
-let bidConfirmationModal;
-let errorModal;
-let errorMessageEl;
+// Bid confirmation modal removed - using toast notifications
 let currentYearEl;
 
 // Initialize DOM elements
@@ -166,9 +156,7 @@ function initElements() {
         searchInputEl = document.getElementById('search-input');
         searchButtonEl = document.getElementById('search-button');
         itemModal = document.getElementById('item-modal');
-        bidConfirmationModal = document.getElementById('bid-confirmation-modal');
-        errorModal = document.getElementById('error-modal');
-        errorMessageEl = document.getElementById('error-message');
+        // Bid confirmation modal removed - using toast notifications
         currentYearEl = document.getElementById('current-year');
         
         // Log which elements were found or not found for debugging
@@ -179,9 +167,7 @@ function initElements() {
             searchInputEl: !!searchInputEl,
             searchButtonEl: !!searchButtonEl,
             itemModal: !!itemModal,
-            bidConfirmationModal: !!bidConfirmationModal,
-            errorModal: !!errorModal,
-            errorMessageEl: !!errorMessageEl,
+            // Bid confirmation modal removed - using toast notifications
             currentYearEl: !!currentYearEl
         });
         
@@ -194,9 +180,7 @@ function initElements() {
         if (!auctionItemsContainer) {
             console.error('Critical element missing: auction-items container not found');
         }
-        if (!errorModal || !errorMessageEl) {
-            console.error('Critical element missing: error modal components not found');
-        }
+        // Error modal check removed - using toast notifications only
     } catch (error) {
         console.error('Error initializing DOM elements:', error);
     }
@@ -229,9 +213,11 @@ async function initApp() {
         // Initialize elements
         initElements();
         
-        // Always set auction status to active
-        localStorage.setItem('auctionStatus', 'active');
-        console.log('Auction status set to always active');
+        // Initialize with a default status if none exists
+        if (!localStorage.getItem('auctionStatus')) {
+            localStorage.setItem('auctionStatus', 'paused'); // Start paused by default
+        }
+        console.log('Current auction status:', localStorage.getItem('auctionStatus'));
         
         // Verify Supabase configuration
         debugLog('=== SUPABASE CONFIGURATION ===');
@@ -251,12 +237,19 @@ async function initApp() {
             
             // Set up real-time updates
             setupRealTimeUpdates();
+            
+            // Update auction status display
+            updateAuctionStatusDisplay();
         } else {
-            console.warn('Failed to connect to Supabase, loading demo data instead');
+            console.warn('Failed to connect to Supabase');
             // Set up event listeners first
             setupEventListeners();
-            // Load demo data if connection failed
-            loadDemoData();
+            
+            // Show error message
+            showError('Unable to connect to the database. Please check your connection and try again.');
+            
+            // Update auction status display
+            updateAuctionStatusDisplay();
         }
     } catch (error) {
         console.error('Error initializing app:', error);
@@ -403,7 +396,6 @@ async function loadAuctionItems() {
         if (testQuery.error) {
             console.error('Test query failed:', testQuery.error);
             await showError(`Database connection test failed: ${testQuery.error.message}`);
-            loadDemoData();
             return;
         }
         
@@ -423,8 +415,6 @@ async function loadAuctionItems() {
                 userAgent: navigator.userAgent,
                 error: JSON.stringify(error)
             });
-            // Load demo data on error
-            loadDemoData();
             return;
         }
         
@@ -434,16 +424,15 @@ async function loadAuctionItems() {
         if (!data || !Array.isArray(data)) {
             console.error('Invalid data format received:', data);
             await showError('Invalid data format received from database');
-            loadDemoData();
             return;
         }
         
         auctionItems = data;
         
-        // If no items were found, load demo data
+        // If no items were found, show error message
         if (auctionItems.length === 0) {
-            console.log('No auction items found, loading demo data instead');
-            loadDemoData();
+            console.warn('No auction items found in the database');
+            await showError('No auction items found in the database. Please check your connection and try again.');
             return;
         }
         
@@ -494,8 +483,8 @@ async function loadAuctionItems() {
             timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent
         });
-        // Load demo data on any error
-        loadDemoData();
+        // Show error message
+        await showError('An unexpected error occurred while loading auction items.');
     }
 }
 
@@ -671,17 +660,43 @@ function populateCategoryFilter() {
 // Set up event listeners
 function setupEventListeners() {
     // Category filter change
-    categoryFilterEl.addEventListener('change', filterItems);
+    if (categoryFilterEl) {
+        categoryFilterEl.addEventListener('change', filterItems);
+    }
     
     // Search button click
-    searchButtonEl.addEventListener('click', filterItems);
+    if (searchButtonEl) {
+        searchButtonEl.addEventListener('click', filterItems);
+    }
     
     // Search input enter key
-    searchInputEl.addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') {
-            filterItems();
-        }
-    });
+    if (searchInputEl) {
+        searchInputEl.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                filterItems();
+            }
+        });
+    }
+    
+    // Auction control buttons
+    const startButton = document.getElementById('start-auction');
+    const pauseButton = document.getElementById('pause-auction');
+
+    if (startButton) {
+        startButton.addEventListener('click', () => {
+            localStorage.setItem('auctionStatus', 'active');
+            updateAuctionStatusDisplay();
+            console.log('Auction started');
+        });
+    }
+
+    if (pauseButton) {
+        pauseButton.addEventListener('click', () => {
+            localStorage.setItem('auctionStatus', 'paused');
+            updateAuctionStatusDisplay();
+            console.log('Auction paused');
+        });
+    }
     
     // Bid button click
     auctionItemsContainer.addEventListener('click', (e) => {
@@ -696,32 +711,19 @@ function setupEventListeners() {
     document.querySelectorAll('.close-modal').forEach(el => {
         el.addEventListener('click', () => {
             itemModal.style.display = 'none';
-            bidConfirmationModal.style.display = 'none';
-            errorModal.style.display = 'none';
+            // bidConfirmationModal removed - using toast notifications only
+            // errorModal removed - using toast notifications only
         });
     });
     
-    // Close confirmation modal
-    document.querySelector('.close-confirmation').addEventListener('click', () => {
-        bidConfirmationModal.style.display = 'none';
-    });
-    
-    // Close error modal
-    document.querySelector('.close-error').addEventListener('click', () => {
-        errorModal.style.display = 'none';
-    });
+    // Bid confirmation modal removed - using toast notifications only
     
     // Close modals when clicking outside
     window.addEventListener('click', (e) => {
         if (e.target === itemModal) {
             itemModal.style.display = 'none';
         }
-        if (e.target === bidConfirmationModal) {
-            bidConfirmationModal.style.display = 'none';
-        }
-        if (e.target === errorModal) {
-            errorModal.style.display = 'none';
-        }
+        // Bid confirmation modal removed - using toast notifications only
     });
 }
 
@@ -818,27 +820,25 @@ function showItemDetails(itemId) {
 async function handleBidSubmission(e) {
     e.preventDefault();
     
-    // Always consider the auction active
-    // Commenting out auction status check as requested
-    /*
-    // Check auction status
+    // Force refresh of auction status from localStorage
     const auctionStatus = localStorage.getItem('auctionStatus');
     console.log('Current auction status in app.js:', auctionStatus);
     
-    // If auction is not explicitly set to active, don't allow bids
-    if (auctionStatus !== 'active') {
-        if (auctionStatus === 'paused') {
-            console.log('Auction is paused, preventing bid');
-            showError('Patience......the auction is paused');
-        } else {
-            console.log('Auction is not started, preventing bid');
-            showError('The auction has not started yet');
-        }
+    // Debug - show the raw localStorage value
+    console.log('Raw localStorage value:', localStorage.getItem('auctionStatus'));
+    
+    // If auction is paused or not active, don't allow bids
+    if (auctionStatus === 'paused') {
+        console.log('Auction is paused, preventing bid');
+        showToastNotification('error', 'The auction has been paused');
+        return;
+    } else if (auctionStatus !== 'active' && auctionStatus !== null) {
+        console.log('Auction is not started, preventing bid');
+        showToastNotification('error', 'The auction has not started yet');
         return;
     }
-    */
     
-    console.log('Auction is always active, allowing bid');
+    console.log('Auction is active, allowing bid');
     
     const itemId = parseInt(document.getElementById('item-id').value);
     const bidderName = document.getElementById('bidder-name').value.trim();
@@ -871,13 +871,31 @@ async function handleBidSubmission(e) {
             const updatedItem = result.data[0];
             updateItemDisplay(updatedItem);
             
-            // Show confirmation
-            bidConfirmationModal.style.display = 'block';
+            // Show improved toast notification with bid details
+            const topBidAmount = updatedItem.current_bid ? `€${updatedItem.current_bid.toFixed(2)}` : 'No bids yet';
+            const topBidder = updatedItem.high_bidder ? `Table ${updatedItem.table_number || tableNumber}` : 'None';
             
-            // Close confirmation after 3 seconds
-            setTimeout(() => {
-                bidConfirmationModal.style.display = 'none';
-            }, 3000);
+            // Create custom styled toast notification
+            const toastMessage = `Your bid has been placed. The top bid for this item is ${topBidAmount} from ${topBidder}.`;
+            
+            // Use custom styling for success toast
+            const toast = showToastNotification('success', toastMessage);
+            
+            // Add extra styling to make it more attractive
+            if (toast) {
+                toast.style.borderLeft = '4px solid #28a745';
+                toast.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                
+                // Add a checkmark icon
+                const content = toast.querySelector('.toast-content');
+                if (content) {
+                    const checkIcon = document.createElement('span');
+                    checkIcon.innerHTML = '✓ ';
+                    checkIcon.style.fontWeight = 'bold';
+                    checkIcon.style.marginRight = '5px';
+                    content.prepend(checkIcon);
+                }
+            }
         } else {
             showError(result.message || 'Failed to place bid');
         }
@@ -1051,72 +1069,102 @@ function updateConnectionStatus(connected, statusText) {
 
 // Show error message
 async function showError(message) {
-    if (errorMessageEl && errorModal) {
-        errorMessageEl.textContent = message;
-        errorModal.style.display = 'block';
-        
-        // For GitHub Pages, add instructions on how to fix
-        if (window.location.hostname.includes('github.io') && message.includes('CORS')) {
-            const instructionsEl = document.createElement('div');
-            instructionsEl.innerHTML = `
-                <div style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #006747;">
-                    <h4 style="margin-top: 0; color: #006747;">How to fix this issue:</h4>
-                    <ol>
-                        <li>Go to your Supabase dashboard</li>
-                        <li>Navigate to Project Settings > API</li>
-                        <li>Under "API Settings", find "Additional allowed origins"</li>
-                        <li>Add <code>${window.location.origin}</code> to the list</li>
-                        <li>Click Save and refresh this page</li>
-                    </ol>
-                    <p><strong>Note:</strong> If you don't have access to the Supabase dashboard, please contact the administrator.</p>
-                </div>
-            `;
-            errorMessageEl.appendChild(instructionsEl);
-        }
-        if (message.includes('CORS')) {
-            // Add more detailed instructions for CORS issues
-            const instructionsEl = document.createElement('div');
-            instructionsEl.innerHTML = `
-                <div style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
-                    <h5>How to Fix CORS Issues:</h5>
-                    <ol>
-                        <li>For GitHub Pages: Consider using a proxy service</li>
-                        <li>For local testing: Ensure you're using HTTPS if required</li>
-                        <li>For custom domains: Set up a reverse proxy or CDN edge middleware</li>
-                    </ol>
-                </div>
-            `;
-            errorMessageEl.appendChild(instructionsEl);
-        }
-        
-        // Add button to load demo data
-        const loadDemoButton = document.createElement('button');
-        loadDemoButton.textContent = 'Load Demo Data Instead';
-        loadDemoButton.className = 'btn btn-primary mt-3';
-        loadDemoButton.style.display = 'inline-block';
-        loadDemoButton.onclick = function() {
-            errorModal.style.display = 'none';
-            loadDemoData();
-        };
-        
-        // Clear any existing buttons except error log buttons
-        const existingButtons = errorMessageEl.parentNode.querySelectorAll('button:not(.error-log-download)');
-        existingButtons.forEach(button => button.remove());
-        
-        // Add the button
-        errorMessageEl.parentNode.appendChild(loadDemoButton);
-    } else {
-        console.error('Error:', message);
-        // Still log the error even if modal isn't available
+    // Only show toast notification, no modal
+    showToastNotification('error', 'Hold Your Horses: ' + message);
+    
+    // Log the error
+    console.error('Error:', message);
+    
+    // Log error to file if available
+    try {
         await logErrorToFile('Connection Error', message, {
             url: window.location.href,
             timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent
         });
+    } catch (e) {
+        console.error('Failed to log error:', e);
     }
 }
 
-// This function has been removed as we no longer need demo data
+// Show toast notification
+function showToastNotification(type, message, onClick = null) {
+    // Create toast container if it doesn't exist
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast-notification ${type}`;
+    
+    // Create content
+    const content = document.createElement('div');
+    content.className = 'toast-content';
+    content.textContent = message;
+    
+    // Add click handler if provided
+    if (onClick) {
+        content.style.cursor = 'pointer';
+        content.addEventListener('click', (e) => {
+            e.stopPropagation();
+            onClick();
+        });
+    }
+    
+    // Create close button
+    const closeBtn = document.createElement('span');
+    closeBtn.className = 'toast-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.onclick = function(e) {
+        e.stopPropagation();
+        toast.remove();
+    };
+    
+    // Assemble toast
+    toast.appendChild(content);
+    toast.appendChild(closeBtn);
+    
+    // Add to container
+    container.appendChild(toast);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+    
+    return toast;
+}
+
+// Update auction status display
+function updateAuctionStatusDisplay() {
+    const status = localStorage.getItem('auctionStatus');
+    const statusDisplay = document.getElementById('status-text');
+    
+    if (statusDisplay) {
+        statusDisplay.textContent = status === 'active' ? 'Active' : 'Paused';
+        statusDisplay.className = 'status-text ' + (status === 'active' ? 'status-active' : 'status-paused');
+    }
+    
+    // Update button states
+    const startButton = document.getElementById('start-auction');
+    const pauseButton = document.getElementById('pause-auction');
+    
+    if (startButton && pauseButton) {
+        if (status === 'active') {
+            startButton.classList.add('active-button');
+            pauseButton.classList.remove('active-button');
+        } else {
+            startButton.classList.remove('active-button');
+            pauseButton.classList.add('active-button');
+        }
+    }
+}
 
 // Retry connection if disconnected
 setInterval(() => {
